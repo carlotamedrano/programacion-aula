@@ -34,8 +34,19 @@ Los datos se guardan en un almacén privado de Vercel y se sincronizan entre dis
 - En **Programación**, una unidad nueva puede generar sus sesiones a partir de las páginas del libro.
 - Las mejoras se publican en este repositorio y Vercel actualiza la app sola en uno o dos minutos. Tus datos no se tocan.
 
+## Asistente con IA
+
+El botón **Asistente** (abajo a la derecha) entiende peticiones como «el viernes hay excursión» o «hoy no he avanzado en Medi» y propone los cambios. No cambia nada hasta pulsar **Aplicar cambios**, y después se puede **Deshacer**.
+
+- Usa **Vercel AI Gateway** con el crédito gratuito mensual de la cuenta. No hace falta clave: la app se identifica sola dentro de Vercel. Si en algún momento no responde, revisa en Vercel la sección **AI Gateway** (que esté activada y con crédito).
+- Opcional: la variable `AI_MODEL` permite elegir otro modelo (por ejemplo `anthropic/claude-haiku-4.5`).
+- Se envía a la IA un resumen de la programación (horario, días especiales, sesiones y lenguas). Mejor no escribir nombres de alumnos en las notas.
+
 ## Archivos
 
 - `index.html`: la app completa.
 - `api/state.js`: guarda y devuelve los datos, solo si la contraseña es correcta.
+- `api/backups.js`: lista, crea y recupera copias de seguridad.
+- `api/assistant.js`: el asistente con IA.
+- `api/_lib.js`: código compartido del servidor.
 - `package.json`: la librería de almacenamiento de Vercel.

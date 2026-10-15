@@ -14,7 +14,7 @@ box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:en
 :root[data-theme="dark"]{--bg:#12151d;--paper:#1b2030;--ink:#e8ecf5;--muted:#9aa5be;--line:#2d3446;--pri:#8ea6ff;--onpri:#12151d;--hl:#e6c230;--dng:#ff8a80;--c1:#26365e;--c2:#21402e;--c3:#4a3320;--c4:#3d2a48;color-scheme:dark}
 *{box-sizing:border-box}
 html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 Figtree,system-ui,-apple-system,"Segoe UI",sans-serif}
-main{max-width:1100px;margin:0 auto;padding:16px 14px 96px}
+main{max-width:1100px;margin:0 auto;padding:16px 14px 150px}
 h1{font-size:1.5rem;margin:4px 0 2px;text-transform:capitalize}
 h2{font-size:1.1rem;margin:22px 0 8px}
 .sub{color:var(--muted);margin:0 0 14px}
@@ -69,6 +69,10 @@ a{color:var(--pri)}
 .checks legend{font-weight:600;font-size:.9rem;padding:0;margin-bottom:3px}
 .checks .ses{font-weight:400;margin:0}
 .hint{color:var(--muted);font-size:.85rem;margin:4px 0 0}
+#aibtn{position:fixed;right:max(14px,env(safe-area-inset-right,0px));bottom:calc(66px + env(safe-area-inset-bottom,0px));z-index:6;border:0;border-radius:99px;background:var(--hl);color:#1b2540;font-weight:700;padding:11px 18px;box-shadow:0 4px 14px rgba(10,14,25,.22)}
+body.locked #aibtn{display:none}
+#aiout .card p{line-height:1.5}
+#aiout .ses{font-weight:400;margin:0}
 .bk{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 0;border-top:1px solid var(--line)}
 #lock{display:none}
 body.locked main,body.locked nav,body.locked #syncbar{display:none}
@@ -99,6 +103,7 @@ body.locked #lock{display:flex;min-height:100vh;min-height:100dvh;align-items:ce
 <div id="syncbar"><span id="sync" role="status" aria-live="polite"></span><button class="lnk" type="button" data-bk="1">Copias de seguridad</button></div>
 <main id="view"></main>
 <nav id="nav"></nav>
+<button id="aibtn" type="button" data-aiopen="1">Asistente</button>
 <div id="modal" role="dialog" aria-modal="true"></div>
 <script>
 const DAYS=["Lunes","Martes","Miércoles","Jueves","Viernes"];
@@ -428,7 +433,7 @@ function resForm(r){
 }
 
 document.addEventListener("click",e=>{
-  const b=e.target.closest("[data-tab],[data-cell],[data-slot],[data-act],[data-editunit],[data-addses],[data-delses],[data-editres],[data-f],[data-lg],[data-wk],[data-ctl],[data-av],[data-wo],[data-mo],[data-day],[data-off],[data-es],[data-nt],[data-genp],[data-eday],[data-dd],[data-resch],[data-bk]");
+  const b=e.target.closest("[data-tab],[data-cell],[data-slot],[data-act],[data-editunit],[data-addses],[data-delses],[data-editres],[data-f],[data-lg],[data-wk],[data-ctl],[data-av],[data-wo],[data-mo],[data-day],[data-off],[data-es],[data-nt],[data-genp],[data-eday],[data-dd],[data-resch],[data-bk],[data-aiopen]");
   if(!b)return;
   const D=b.dataset;
   if(D.tab){tab=D.tab;render();window.scrollTo(0,0)}
@@ -462,6 +467,7 @@ document.addEventListener("click",e=>{
   else if(D.dd!==undefined){if(D.dd==="0")dOff=0;else{let n=dOff;do{n+=+D.dd}while(wd(addD(new Date(),n))>4);dOff=n}render()}
   else if(D.resch){const[id,i]=D.resch.split(":"),u=S.units.find(x=>x.id===id);if(u){const x=u.ses[+i];if(['mates','medi','oral'].includes(subj(u))){delete x.d;save();render()}else editSes(D.resch)}}
   else if(D.bk){backupsUI()}
+  else if(D.aiopen){aiUI()}
   else if(D.editunit){const u=S.units.find(x=>x.id===D.editunit);modal("Editar unidad",unitForm(u),d=>{Object.assign(u,d)},()=>{S.units=S.units.filter(x=>x!==u)})}
   else if(D.addses){const u=S.units.find(x=>x.id===D.addses);modal("Nueva sesión",[{k:"t",label:"Qué vas a trabajar",type:"textarea",value:"",req:1},{k:"d",label:"Fecha (opcional)",type:"date",value:""},{k:"p",label:"Qué hay que imprimir (opcional)",value:"",ph:"Ej. ficha de repaso"}],d=>{if(d.t){const x={t:d.t,done:false};if(d.d)x.d=d.d;if(d.p)x.p=d.p;u.ses.push(x)}})}
   else if(D.delses){const u=S.units.find(x=>x.id===D.delses);modal("Quitar sesiones",[{k:"i",label:"Sesión",type:"select",options:u.ses.map((x,i)=>[i,x.t.slice(0,50)]),value:0}],d=>{u.ses.splice(+d.i,1)})}
@@ -517,6 +523,76 @@ async function backupsUI(msg){const m=$("#modal");
         adopt(await r2.json());close();render();status("Recuperada la copia del "+fmtAt(b.dataset.at)+".");if(SY.dirty)push()}
       catch(x){b.disabled=false;b.textContent="Recuperar";$("#bkmsg").textContent="No se ha podido recuperar la copia. Comprueba la conexión."}}}
   catch(x){$("#bkmsg").textContent="No se han podido cargar las copias. Comprueba la conexión."}}
+// Asistente con IA: entiende peticiones en lenguaje natural y propone cambios que Carlota confirma.
+let AIH=[],aiState=[];
+const isD=x=>typeof x==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(x)&&!isNaN(dt(x))&&wd(dt(x))<5;
+const Fl=k=>fl(k).replace(/^./,c=>c.toUpperCase());
+const AIEX=["El viernes que viene hay excursión todo el día","Hoy no he avanzado en Medi","¿Cuándo toca el próximo control de Mates?"];
+function aiContext(){const E=sched(),t0=T0(),L=[];
+  L.push(`Hoy: ${fl(t0)} (${t0}). El curso acaba el 2027-06-21.`);
+  L.push('\nHORARIO (hora, asignatura en la agenda, texto de la celda):');
+  DAYS.forEach((d,w)=>{const a=[];S.slots.forEach((h,i)=>{const c=S.cells[i+'-'+w];if(c&&c.t)a.push(`${h} ${c.k?'(sin contenidos)':cs(c)||'-'} "${c.t}"${c.n?' nota: '+c.n:''}${c.alt?' alterna: '+c.alt.join('/'):''}`)});L.push(`${d}: ${a.join('; ')}`)});
+  L.push('\nDÍAS ESPECIALES:');
+  const from=iso(addD(new Date(),-7)),ks=new Set([...(S.off||[]),...(S.lt||[]),...Object.keys(S.hd||{}),...Object.keys(S.nt||{}),...Object.keys(S.sk||{})]);
+  [...ks].filter(k=>k>=from).sort().forEach(k=>{const t=(S.off||[]).includes(k)?'sin clase':(S.lt||[]).includes(k)?'light':half(k)==='m'?'sin clase por la mañana':half(k)==='t'?'sin clase por la tarde':'clase';L.push(`${k} (${fl(k)}): ${t}${S.nt&&S.nt[k]?'; nota: '+S.nt[k]:''}${S.sk&&S.sk[k]?'; no se avanzó: '+S.sk[k].join(','):''}`)});
+  L.push('\nUNIDADES (# id | título | asignatura en la agenda). Sesiones: índice | estado | texto | fecha fija | fecha prevista');
+  S.units.forEach(u=>{const all=u.ses.length&&u.ses.every(x=>x.done);L.push(`# ${u.id} | ${u.title} | ${subj(u)||'ninguna'}${all?' | COMPLETADA':''}`);if(all)return;
+    u.ses.forEach((x,i)=>L.push(`  ${i} | ${x.done?'hecha':'pendiente'} | ${x.t}${x.p?' [imprimir: '+x.p+']':''} | ${x.d||'-'} | ${x.done?'-':(eff(u,x,i,E)||'sin colocar')}`))});
+  const first={};Object.keys(LP).sort().forEach(k=>{const o=LP[k];if(o&&!first[o.k])first[o.k]=k.split('#')[0]});
+  ['cat','cas'].forEach(g=>{const Lg=LNG[g];let n=0;L.push(`\nLENGUA ${Lg.n}: próximos contenidos pendientes (clave | contenido | mes | fecha prevista)`);
+    Lg.M.forEach((m,mi)=>m[1].forEach((w,wi)=>items(g,mi,wi).forEach(x=>{if(!S.done[x.k]&&n<25){n++;L.push(`${x.k} | ${x.t} | ${m[0]} semana ${w[0]} | ${first[x.k]||'-'}`)}})));
+    L.push(`Controles de ${Lg.n} (índice del mes | mes | fecha | hecho)`);Lg.M.forEach((m,mi)=>L.push(`${mi} | ${m[0]} | ${(S.ctl||{})[g+'-'+mi]||'-'} | ${S.done[g+'-'+mi+'-ctl']?'sí':'no'}`))});
+  return L.join('\n')}
+function aiPrep(a){const no=m=>({err:m});if(!a||typeof a!=='object')return no('vacía');const U=id=>S.units.find(x=>x.id===id);
+  switch(a.tipo){
+  case 'dia':{const map={normal:'',sin_clase:'off',sin_clase_manana:'m',sin_clase_tarde:'t',light:'lt'};if(!isD(a.fecha)||!(a.clase in map))return no('día');const ty=map[a.clase];
+    return {d:`${Fl(a.fecha)}: ${dayTypes.find(t=>t[0]===ty)[1].replace(/^./,c=>c.toLowerCase())}`,run:()=>{const k=a.fecha;S.off=(S.off||[]).filter(x=>x!==k);S.lt=(S.lt||[]).filter(x=>x!==k);S.hd=S.hd||{};delete S.hd[k];if(ty==='off')S.off.push(k);else if(ty==='lt')S.lt.push(k);else if(ty)S.hd[k]=ty}}}
+  case 'nota':{if(!isD(a.fecha))return no('nota');const t=String(a.texto||'').trim();return {d:t?`${Fl(a.fecha)}: nota «${t}»`:`${Fl(a.fecha)}: borrar la nota`,run:()=>{S.nt=S.nt||{};if(t)S.nt[a.fecha]=t;else delete S.nt[a.fecha]}}}
+  case 'no_avanzo':{if(!isD(a.fecha)||!Array.isArray(a.asignaturas))return no('no avanzó');const l=[...new Set(a.asignaturas.filter(x=>SKL[x]))];
+    return {d:l.length?`${Fl(a.fecha)}: no se avanzó en ${l.map(x=>SKL[x]).join(', ')}`:`${Fl(a.fecha)}: quitar «no se avanzó»`,run:()=>{S.sk=S.sk||{};if(l.length)S.sk[a.fecha]=l;else delete S.sk[a.fecha]}}}
+  case 'nueva_sesion':{const u=U(a.unidad),t=String(a.texto||'').trim();if(!u||!t)return no('sesión');if(a.fecha&&!isD(a.fecha))return no('fecha');const hasPos=Number.isInteger(a.antes_de),ref=hasPos?u.ses[a.antes_de]:null;if(hasPos&&!ref)return no('posición');
+    return {d:`${u.title}: nueva sesión «${t}»${ref?` antes de «${ref.t}»`:' al final'}${a.fecha?`, el ${fl(a.fecha)}`:''}`,run:()=>{const x={t,done:false};if(a.fecha)x.d=a.fecha;if(a.imprimir)x.p=String(a.imprimir);const i=ref?u.ses.indexOf(ref):-1;if(i<0)u.ses.push(x);else u.ses.splice(i,0,x)}}}
+  case 'editar_sesion':{const u=U(a.unidad),x=u&&Number.isInteger(a.indice)&&u.ses[a.indice];if(!x)return no('sesión');if(a.fecha&&!isD(a.fecha))return no('fecha');const ch=[],tx=typeof a.texto==='string'?a.texto.trim():'';
+    if(tx)ch.push(`texto «${tx}»`);if(typeof a.fecha==='string')ch.push(a.fecha?`fecha ${fl(a.fecha)}`:'sin fecha fija');if(typeof a.imprimir==='string')ch.push(a.imprimir?`imprimir «${a.imprimir}»`:'nada que imprimir');if(typeof a.hecha==='boolean')ch.push(a.hecha?'hecha':'pendiente');
+    if(!ch.length)return no('sin cambios');
+    return {d:`${u.title}: «${x.t}» → ${ch.join(', ')}`,run:()=>{if(tx)x.t=tx;if(typeof a.fecha==='string'){if(a.fecha)x.d=a.fecha;else delete x.d}if(typeof a.imprimir==='string'){if(a.imprimir)x.p=a.imprimir;else delete x.p}if(typeof a.hecha==='boolean'){x.done=a.hecha;if(x.done&&!x.d)x.f=T0();else delete x.f}}}}
+  case 'borrar_sesion':{const u=U(a.unidad),x=u&&Number.isInteger(a.indice)&&u.ses[a.indice];if(!x)return no('sesión');return {d:`${u.title}: borrar «${x.t}»`,run:()=>{const i=u.ses.indexOf(x);if(i>-1)u.ses.splice(i,1)}}}
+  case 'nueva_unidad':{const t=String(a.titulo||'').trim();if(!t)return no('unidad');const ex=Array.isArray(a.extras)?a.extras:['repaso','ficha','control'];
+    const g=genSessions({g_a:String(a.desde||''),g_b:String(a.hasta||''),g_skip:(Array.isArray(a.saltar)?a.saltar:[]).join(','),g_n:String(a.por||2),g_end:ex.map(e=>({repaso:'rep',ficha:'fic',control:'ctl'})[e]).filter(Boolean)});if(g.err)return no(g.err);
+    const sj=['mates','medi','oral'].includes(a.agenda)?a.agenda:'';
+    return {d:`Nueva unidad «${t}»${g.ses.length?`, con ${g.ses.length} sesiones`:''}`,run:()=>{S.units.push({id:uid(),title:t,subject:String(a.asignatura||''),sj,start:'',end:'',notes:g.a?`Libro págs. ${g.a}–${g.b}.`:'',ses:g.ses})}}}
+  case 'lengua':{let it=null;['cat','cas'].forEach(g=>LNG[g].M.forEach((m,mi)=>m[1].forEach((w,wi)=>items(g,mi,wi).forEach(x=>{if(x.k===a.clave)it=x}))));if(!it||typeof a.hecha!=='boolean')return no('lengua');
+    return {d:`${it.t}: ${a.hecha?'hecho':'pendiente'}`,run:()=>{if(a.hecha)S.done[it.k]=S.done[it.k]||T0();else delete S.done[it.k]}}}
+  case 'control':{const Lg=LNG[a.lengua],m=Lg&&Number.isInteger(a.mes)&&Lg.M[a.mes];if(!m)return no('control');if(a.fecha&&!isD(a.fecha))return no('fecha');const k=a.lengua+'-'+a.mes;
+    return {d:`Control de ${m[0]} (${Lg.n}): ${a.fecha?fl(a.fecha):'sin fecha'}`,run:()=>{S.ctl=S.ctl||{};if(a.fecha)S.ctl[k]=a.fecha;else delete S.ctl[k]}}}}
+  return no('desconocida')}
+const aiErr=e=>e==='limite'?'Has hecho muchas peticiones seguidas. Espera un minuto y vuelve a probar.':e==='sin_ia'||e==='auth_ia'?'El asistente todavía no está activado en Vercel (AI Gateway).':e==='modelo'?'La IA no ha respondido. Puede que se haya acabado el crédito gratuito de este mes; el resto de la app sigue funcionando.':'No se ha podido contactar con el asistente. Inténtalo de nuevo.';
+function aiUI(){const m=$("#modal");
+  m.innerHTML=`<form class="sheet" id="aif"><h3>Asistente</h3><p class="hint">Pídele cambios en tu agenda o pregúntale por tu programación. No cambia nada hasta que pulses «Aplicar cambios».</p>
+<div class="chips" style="margin:10px 0 0">${AIEX.map(x=>`<button type="button" data-aiex="${esc(x)}">${esc(x)}</button>`).join("")}</div>
+<label for="aiq">Qué necesitas</label><textarea id="aiq" rows="3" required placeholder="Ej. El jueves 22 de octubre vamos al teatro por la tarde"></textarea>
+<div class="row"><button class="pri" type="submit" id="aigo">Enviar</button><button class="btn" type="button" id="aiclose">Cerrar</button></div><div id="aiout" aria-live="polite"></div></form>`;
+  m.classList.add("on");const close=()=>{m.classList.remove("on");m.innerHTML=""};
+  $("#aiclose").onclick=close;
+  $("#aif").addEventListener("click",e=>{const b=e.target.closest("[data-aiex]");if(b){$("#aiq").value=b.dataset.aiex;$("#aiq").focus()}});
+  $("#aif").onsubmit=e=>{e.preventDefault();const q=$("#aiq").value.trim();if(q)aiAsk(q)};
+  $("#aiq").focus()}
+async function aiAsk(q){const out=$("#aiout"),go=$("#aigo");go.disabled=true;go.textContent="Pensando…";out.innerHTML="";
+  try{const r=await fetch("/api/assistant",{method:"POST",cache:"no-store",headers:{"x-clave":SY.pw,"content-type":"application/json"},body:JSON.stringify({pregunta:q,contexto:aiContext(),historial:AIH})});
+    if(r.status===401){lock("La contraseña ha cambiado. Vuelve a escribirla.");return}
+    const j=await r.json().catch(()=>({}));
+    if(!r.ok){out.innerHTML=`<p class="hint" style="color:var(--dng)">${esc(aiErr(j.error))}</p>`;return}
+    let p;try{const t=j.texto||"",a=t.indexOf("{"),b=t.lastIndexOf("}");p=JSON.parse(t.slice(a,b+1))}catch(x){p={respuesta:j.texto||"",acciones:[]}}
+    AIH=AIH.concat([{role:"user",content:q},{role:"assistant",content:String(j.texto||"").slice(0,4000)}]).slice(-6);
+    const acts=(Array.isArray(p.acciones)?p.acciones:[]).map(aiPrep),ok=acts.filter(x=>!x.err),nok=acts.length-ok.length;aiState=ok;
+    out.innerHTML=`<div class="card" style="margin-top:12px">${p.respuesta?`<p style="margin:0 0 8px;white-space:pre-wrap">${esc(p.respuesta)}</p>`:""}${ok.length?`<b>Cambios propuestos</b>${ok.map((o,i)=>`<label class="ses"><input type="checkbox" data-ai="${i}" checked><span>${esc(o.d)}</span></label>`).join("")}<div class="row" style="margin-top:10px"><button class="pri" type="button" id="aiapply">Aplicar cambios</button></div>`:""}${nok?`<p class="hint">${nok===1?"Una propuesta no era válida y se ha descartado.":nok+" propuestas no eran válidas y se han descartado."}</p>`:""}</div>`;
+    if(ok.length)$("#aiapply").onclick=aiApply;$("#aiq").value=""}
+  catch(x){out.innerHTML=`<p class="hint" style="color:var(--dng)">Sin conexión. El asistente necesita internet.</p>`}
+  finally{go.disabled=false;go.textContent="Enviar"}}
+function aiApply(){const sel=[...document.querySelectorAll("[data-ai]")].filter(c=>c.checked).map(c=>aiState[+c.dataset.ai]).filter(Boolean);if(!sel.length)return;
+  const before=JSON.stringify(S);sel.forEach(o=>{try{o.run()}catch(e){console.error(e)}});save();render();
+  $("#aiout").innerHTML=`<div class="card" style="margin-top:12px"><b>${sel.length===1?"Cambio aplicado.":sel.length+" cambios aplicados."}</b><div class="row" style="margin-top:8px"><button class="btn" type="button" id="aiundo">Deshacer</button></div></div>`;
+  $("#aiundo").onclick=()=>{S=JSON.parse(before);save();render();$("#aiout").innerHTML=`<p class="hint">Cambios deshechos.</p>`}}
 // Pantalla de bienvenida: la app no se muestra hasta comprobar la contraseña.
 async function hashPw(p){try{const b=await crypto.subtle.digest("SHA-256",new TextEncoder().encode("progaula:"+p));return Array.from(new Uint8Array(b),x=>x.toString(16).padStart(2,"0")).join("")}catch(e){return ""}}
 function lock(msg){SY.pw="";SY.ready=false;try{sessionStorage.removeItem("progaula-clave")}catch(e){}
