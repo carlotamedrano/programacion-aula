@@ -566,7 +566,7 @@ function aiPrep(a){const no=m=>({err:m});if(!a||typeof a!=='object')return no('v
   case 'control':{const Lg=LNG[a.lengua],m=Lg&&Number.isInteger(a.mes)&&Lg.M[a.mes];if(!m)return no('control');if(a.fecha&&!isD(a.fecha))return no('fecha');const k=a.lengua+'-'+a.mes;
     return {d:`Control de ${m[0]} (${Lg.n}): ${a.fecha?fl(a.fecha):'sin fecha'}`,run:()=>{S.ctl=S.ctl||{};if(a.fecha)S.ctl[k]=a.fecha;else delete S.ctl[k]}}}}
   return no('desconocida')}
-const aiErr=e=>e==='limite'?'Has hecho muchas peticiones seguidas. Espera un minuto y vuelve a probar.':e==='sin_ia'||e==='auth_ia'?'El asistente todavía no está activado en Vercel (AI Gateway).':e==='modelo'?'La IA no ha respondido. Puede que se haya acabado el crédito gratuito de este mes; el resto de la app sigue funcionando.':'No se ha podido contactar con el asistente. Inténtalo de nuevo.';
+const aiErr=e=>e==='verificacion'?'Vercel pide añadir un método de pago a la cuenta para activar el crédito gratuito de IA. Mientras no se compren créditos, no se cobra nada.':e==='sin_credito'?'La cuenta de Vercel no tiene crédito de IA disponible ahora mismo.':e==='presupuesto'?'Se ha alcanzado el límite de gasto de IA configurado en Vercel.':e==='limite'?'Has hecho muchas peticiones seguidas. Espera un minuto y vuelve a probar.':e==='sin_ia'||e==='auth_ia'?'El asistente todavía no está activado en Vercel (AI Gateway).':e==='modelo'?'La IA no ha respondido. Puede que se haya acabado el crédito gratuito de este mes; el resto de la app sigue funcionando.':'No se ha podido contactar con el asistente. Inténtalo de nuevo.';
 function aiUI(){const m=$("#modal");
   m.innerHTML=`<form class="sheet" id="aif"><h3>Asistente</h3><p class="hint">Pídele cambios en tu agenda o pregúntale por tu programación. No cambia nada hasta que pulses «Aplicar cambios».</p>
 <div class="chips" style="margin:10px 0 0">${AIEX.map(x=>`<button type="button" data-aiex="${esc(x)}">${esc(x)}</button>`).join("")}</div>
@@ -581,7 +581,7 @@ async function aiAsk(q){const out=$("#aiout"),go=$("#aigo");go.disabled=true;go.
   try{const r=await fetch("/api/assistant",{method:"POST",cache:"no-store",headers:{"x-clave":SY.pw,"content-type":"application/json"},body:JSON.stringify({pregunta:q,contexto:aiContext(),historial:AIH})});
     if(r.status===401){lock("La contraseña ha cambiado. Vuelve a escribirla.");return}
     const j=await r.json().catch(()=>({}));
-    if(!r.ok){out.innerHTML=`<p class="hint" style="color:var(--dng)">${esc(aiErr(j.error))}</p>`;return}
+    if(!r.ok){const u=safeUrl(j.url||"");out.innerHTML=`<p class="hint" style="color:var(--dng)">${esc(aiErr(j.error))}</p>${u?`<p class="hint"><a href="${esc(u)}" target="_blank" rel="noopener">Abrir la página de Vercel para activarlo</a></p>`:""}${j.detalle?`<p class="hint">Detalle técnico: ${esc(j.detalle)}</p>`:""}`;return}
     let p;try{const t=j.texto||"",a=t.indexOf("{"),b=t.lastIndexOf("}");p=JSON.parse(t.slice(a,b+1))}catch(x){p={respuesta:j.texto||"",acciones:[]}}
     AIH=AIH.concat([{role:"user",content:q},{role:"assistant",content:String(j.texto||"").slice(0,4000)}]).slice(-6);
     const acts=(Array.isArray(p.acciones)?p.acciones:[]).map(aiPrep),ok=acts.filter(x=>!x.err),nok=acts.length-ok.length;aiState=ok;

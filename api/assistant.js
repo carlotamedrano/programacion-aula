@@ -3,7 +3,17 @@
 import { getVercelOidcToken } from '@vercel/oidc';
 import { json, check } from './_lib.js';
 
-const MODELS = [process.env.AI_MODEL, 'anthropic/claude-haiku-5.5', 'anthropic/claude-haiku-4.5', 'anthropic/claude-sonnet-5'].filter(Boolean);
+// Se prueban en orden. Si un modelo no entra en el nivel gratuito, se pasa al siguiente.
+const MODELS = [
+  process.env.AI_MODEL,
+  'anthropic/claude-haiku-5.5',
+  'google/gemini-3.8-flash',
+  'zai/glm-5.3-flash',
+  'mistral/mistral-large-4',
+  'inception/mercury-2.5',
+  'nvidia/nemotron-3.5-lightning-free',
+  'poolside/laguna-s-2.1-free',
+].filter(Boolean);
 
 const SYSTEM = `Eres el asistente de la app de programación de aula de Carlota, maestra de 5è de Primària en Catalunya (también da Castellano en 6è).
 Recibes un CONTEXTO con su horario, días especiales, unidades con sesiones y la temporalización de lenguas, y una PETICIÓN suya.
@@ -71,10 +81,19 @@ export async function POST(req) {
         if (Array.isArray(c)) c = c.map((p) => p.text || '').join('');
         return json({ texto: c || '', modelo: model });
       }
-      last = (await r.text()).slice(0, 400);
-      console.error('IA', model, r.status, last);
+      const raw = await r.text();
+      let err = {};
+      try { err = JSON.parse(raw).error || {}; } catch {}
+      last = `${r.status} ${err.type || ''} ${err.message || raw}`.slice(0, 400);
+      console.error('IA', model, last);
       if (r.status === 429) return json({ error: 'limite' }, 429);
       if (r.status === 401) return json({ error: 'auth_ia', detalle: last }, 502);
+      if (err.type === 'customer_verification_required') {
+        const url = ((err.message || raw).match(/https:\/\/\S+/) || [''])[0].replace(/[).,]+$/, '');
+        return json({ error: 'verificacion', url, detalle: last }, 402);
+      }
+      if (r.status === 402 && err.type !== 'quota_for_entity_exceeded') return json({ error: 'sin_credito', detalle: last }, 402);
+      if (r.status === 402) return json({ error: 'presupuesto', detalle: last }, 402);
     } catch (e) {
       last = String(e);
       console.error('IA', model, e);
