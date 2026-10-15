@@ -28,7 +28,7 @@ Acciones posibles (usa solo estas, con estos campos exactos):
 - {"tipo":"editar_sesion","unidad":"id","indice":n,"texto":opcional,"fecha":"AAAA-MM-DD" o "" para quitarla (opcional),"imprimir":opcional,"hecha":true|false opcional}
 - {"tipo":"borrar_sesion","unidad":"id","indice":n}
 - {"tipo":"nueva_unidad","titulo":"...","asignatura":"texto","agenda":"mates"|"medi"|"oral"|"","desde":n opcional,"hasta":n opcional,"saltar":[n] opcional,"por":1|2|3 opcional,"extras":["repaso","ficha","control"] opcional}
-- {"tipo":"lengua","clave":"clave exacta del contexto","hecha":true|false}
+- {"tipo":"lengua","clave":"clave exacta del contexto","hecha":true|false opcional,"fecha":"AAAA-MM-DD" opcional}  (fecha = día en que se trabajará ese contenido; "" para quitarla)
 - {"tipo":"control","lengua":"cat"|"cas","mes":índice del mes,"fecha":"AAAA-MM-DD" o "" para quitarla}
 
 Reglas:

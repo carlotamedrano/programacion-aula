@@ -193,6 +193,7 @@ if(!S.seed17){S.units=S.units.filter(x=>x.id!=='mates-u9');
 if(!S.seed18){S.done['cas-0-1-0']=1;S.seed18=1;save()}
 if(!S.seed19){if(S.cells['8-3']){S.cells['8-3'].alt=['Apadrinament','Cinefòrum emocional'];S.cells['8-3'].a0='2026-10-12'}S.seed19=1;save()}
 if(!S.seed20){S.sk=S.sk||{};S.sk['2026-10-14']=['medi'];S.seed20=1;save()}
+if(!S.seed24){S.lpin=S.lpin||{};if(!S.done['cat-1-1-5'])S.lpin['cat-1-1-5']='2026-10-16';S.seed24=1;save()}
 if(!S.seed23){if(S.done&&S.done['cat-1-2-4'])S.done['cat-1-2-4']='2026-10-15';S.seed23=1;save()}
 if(!S.seed22){const a=S.cells['7-3'],b=S.cells['8-3'];if(a&&b&&/MEDI/i.test(a.t)&&/EMOCIONAL/i.test(b.t)){S.cells['7-3']=b;S.cells['8-3']=a}S.seed22=1;save()}
 if(!S.seed21){Object.keys(S.cells).forEach(k=>{const c=S.cells[k];if(c&&c.t&&!c.k&&typeof c.s!=='string')c.s=guessCell(c)});S.units.forEach(u=>{if(typeof u.sj!=='string')u.sj=subj(u)});S.seed21=1;save()}
@@ -258,7 +259,7 @@ function foldHtml(key,label,list){if(!list.length)return "";const op=openM[key]=
 // Lenguas dentro de Programación: el mes en curso abierto, el resto en un desplegable.
 function langInfo(g){const L=LNG[g];return L.M.map((m,mi)=>{const its=m[1].map((w,wi)=>items(g,mi,wi)),all=its.flat();return{m,mi,its,d:all.filter(x=>S.done[x.k]).length,n:all.length}})}
 function langCur(info){const mm=new Date().getMonth(),ci=mm>=8?mm-8:mm<=5?mm+4:9;return info[Math.min(ci,info.length-1)]}
-function monthBody(g,o){return o.m[1].map((w,wi)=>{const it=o.its[wi],all=it.every(x=>S.done[x.k]);return `<div style='margin-top:10px'><div class='row sp'><b>Semana ${w[0]}</b><button class='lnk' data-wk='${g}:${o.mi}:${wi}'>${all?'Desmarcar semana':'Marcar semana'}</button></div>`+it.map(x=>`<label class='ses ${S.done[x.k]?'done':''}' style='font-weight:400;margin:0'><input type='checkbox' data-dn='${x.k}' ${S.done[x.k]?'checked':''}><span>${esc(x.t)}</span></label>`).join('')+'</div>'}).join('')+ctlBlock(o,g)}
+function monthBody(g,o){return o.m[1].map((w,wi)=>{const it=o.its[wi],all=it.every(x=>S.done[x.k]);return `<div style='margin-top:10px'><div class='row sp'><b>Semana ${w[0]}</b><button class='lnk' data-wk='${g}:${o.mi}:${wi}'>${all?'Desmarcar semana':'Marcar semana'}</button></div>`+it.map(x=>{const pn=(S.lpin||{})[x.k];return `<label class='ses ${S.done[x.k]?'done':''}' style='font-weight:400;margin:0'><input type='checkbox' data-dn='${x.k}' ${S.done[x.k]?'checked':''}><span>${esc(x.t)}</span>${x.k.endsWith('-x')?'':`<button class='lnk' type='button' data-lpin='${x.k}' style='margin-left:auto'>${pn?fdate(pn):'Fecha'}</button>`}</label>`}).join('')+'</div>'}).join('')+ctlBlock(o,g)}
 function langSection(g){const L=LNG[g],info=langInfo(g),cur=langCur(info),late=info.slice(0,cur.mi).filter(o=>o.d<o.n);
   const ready=info.filter(o=>{const t=o.its.flat().filter(x=>/-[456]$/.test(x.k));return t.length&&t.every(x=>S.done[x.k])&&!S.done[g+'-'+o.mi+'-ctl']}).map(o=>o.m[0]);
   let h=`<div class='card'><div class='row sp'><b>${esc(cur.m[0])}</b><span class='muted'>${cur.d} de ${cur.n} contenidos</span></div>`;
@@ -374,9 +375,16 @@ function ortoSeq(){const r=[];let n=0;LNG.cat.M.forEach((m,mi)=>m[1].forEach((w,
 function langPlan(){const pool={},out={},t0=T0();
   const mk=(g,ks)=>{const r=[],L=LNG[g];for(let mi=0;mi<L.M.length;mi++)for(let wi=0;wi<L.M[mi][1].length;wi++)for(const x of items(g,mi,wi)){const i=+x.k.split('-').pop();if(ks.indexOf(i)>-1&&(!S.done[x.k]||S.done[x.k]===t0))r.push(x)}return r};
   pool.cG=mk('cat',[2,5,6]);pool.cO=ortoSeq().filter(x=>!S.done[x.k]||S.done[x.k]===t0);pool.sp=mk('cas',[2,4,5,6]);let hs=null;
+  // Contenidos con día fijado (S.lpin): salen ese día y no entran en el reparto automático.
+  const byKey={};ortoSeq().forEach(x=>byKey[x.k]=x);['cat','cas'].forEach(g=>LNG[g].M.forEach((m,mi)=>m[1].forEach((w,wi)=>items(g,mi,wi).forEach(x=>byKey[x.k]=x))));
+  const pins=S.lpin||{},byDay={};Object.keys(pins).forEach(k=>{if(byKey[k]&&pins[k]>=t0&&(!S.done[k]||S.done[k]===t0))(byDay[pins[k]]=byDay[pins[k]]||[]).push(k)});
+  const pinned=new Set([].concat(...Object.values(byDay)));['cG','cO','sp'].forEach(q=>{pool[q]=pool[q].filter(x=>!pinned.has(x.k))});
   for(let n=0;n<260;n++){const d=addD(new Date(),n),w=wd(d),k=iso(d);if(w>4||(S.off||[]).includes(k)||(S.lt||[]).includes(k)||k>'2027-06-21')continue;
-    let gG=0,gS=0;
+    let gG=0,gS=0;const pd=(byDay[k]||[]).map(q=>Object.assign({},byKey[q],{pin:1})),ty=new Set();
+    S.slots.forEach((h,i)=>{const c=S.cells[i+'-'+w],s=cs(c);if(s&&!c.n&&!c.alt&&!blocked(k,i)&&!skipped(k,s))ty.add(s)});
+    const want=x=>x.k.startsWith('cas-')?['cas']:(x.dict||x.k.endsWith('-4'))?(ty.has('orto')?['orto']:['cat','catd']):(ty.has('cat')?['cat']:['catd']);
     S.slots.forEach((h,i)=>{const c=S.cells[i+'-'+w],s=cs(c);if(!s||c.n||c.alt||blocked(k,i)||skipped(k,s))return;
+      const pi=pd.findIndex(x=>!x.used&&want(x).includes(s));if(pi>-1){pd[pi].used=1;out[k+'#'+i]=pd[pi];if(s==='cat')gG=1;if(s==='cas')gS=1;return}
       if(s==='orto'){if(pool.cO.length)out[k+'#'+i]=pool.cO.shift()}
       else if(s==='catd'){if(hs){out[k+'#'+i]=Object.assign({},hs,{h:2});hs=null}else if(pool.cG.length){hs=pool.cG.shift();out[k+'#'+i]=Object.assign({},hs,{h:1})}}
       else if(s==='cat'){if(!gG&&pool.cG.length){gG=1;out[k+'#'+i]=pool.cG.shift()}}
@@ -473,7 +481,7 @@ function resForm(r){
 }
 
 document.addEventListener("click",e=>{
-  const b=e.target.closest("[data-tab],[data-cell],[data-slot],[data-act],[data-editunit],[data-addses],[data-delses],[data-editres],[data-f],[data-lg],[data-wk],[data-ctl],[data-av],[data-wo],[data-mo],[data-day],[data-off],[data-es],[data-nt],[data-genp],[data-eday],[data-dd],[data-resch],[data-bk],[data-aiopen],[data-golg]");
+  const b=e.target.closest("[data-tab],[data-cell],[data-slot],[data-act],[data-editunit],[data-addses],[data-delses],[data-editres],[data-f],[data-lg],[data-wk],[data-ctl],[data-av],[data-wo],[data-mo],[data-day],[data-off],[data-es],[data-nt],[data-genp],[data-eday],[data-dd],[data-resch],[data-bk],[data-aiopen],[data-golg],[data-lpin]");
   if(!b)return;
   const D=b.dataset;
   if(D.tab){tab=D.tab;render();window.scrollTo(0,0)}
@@ -508,6 +516,7 @@ document.addEventListener("click",e=>{
   else if(D.resch){const[id,i]=D.resch.split(":"),u=S.units.find(x=>x.id===id);if(u){const x=u.ses[+i];if(['mates','medi','oral'].includes(subj(u))){delete x.d;save();render()}else editSes(D.resch)}}
   else if(D.bk){backupsUI()}
   else if(D.aiopen){aiUI()}
+  else if(D.lpin){e.preventDefault();const k=D.lpin;S.lpin=S.lpin||{};modal('Día para este contenido',[{type:'note',label:'Si pones un día, la Agenda lo coloca en la hora de lengua de ese día y el resto se reparte a su alrededor. Déjalo vacío para que se reparta solo.'},{k:'d',label:'Día',type:'date',value:S.lpin[k]||''}],d=>{if(d.d){if(wd(dt(d.d))>4){genErr('Elige un día de lunes a viernes.');return false}S.lpin[k]=d.d}else delete S.lpin[k]})}
   else if(D.editunit){const u=S.units.find(x=>x.id===D.editunit);modal("Editar unidad",unitForm(u),d=>{Object.assign(u,d)},()=>{S.units=S.units.filter(x=>x!==u)})}
   else if(D.addses){const u=S.units.find(x=>x.id===D.addses);modal("Nueva sesión",[{k:"t",label:"Qué vas a trabajar",type:"textarea",value:"",req:1},{k:"d",label:"Fecha (opcional)",type:"date",value:""},{k:"p",label:"Qué hay que imprimir (opcional)",value:"",ph:"Ej. ficha de repaso"}],d=>{if(d.t){const x={t:d.t,done:false};if(d.d)x.d=d.d;if(d.p)x.p=d.p;u.ses.push(x)}})}
   else if(D.delses){const u=S.units.find(x=>x.id===D.delses);modal("Quitar sesiones",[{k:"i",label:"Sesión",type:"select",options:u.ses.map((x,i)=>[i,x.t.slice(0,50)]),value:0}],d=>{u.ses.splice(+d.i,1)})}
@@ -602,8 +611,9 @@ function aiPrep(a){const no=m=>({err:m});if(!a||typeof a!=='object')return no('v
     const g=genSessions({g_a:String(a.desde||''),g_b:String(a.hasta||''),g_skip:(Array.isArray(a.saltar)?a.saltar:[]).join(','),g_n:String(a.por||2),g_end:ex.map(e=>({repaso:'rep',ficha:'fic',control:'ctl'})[e]).filter(Boolean)});if(g.err)return no(g.err);
     const sj=['mates','medi','oral'].includes(a.agenda)?a.agenda:'';
     return {d:`Nueva unidad «${t}»${g.ses.length?`, con ${g.ses.length} sesiones`:''}`,run:()=>{S.units.push({id:uid(),title:t,subject:String(a.asignatura||''),sj,start:'',end:'',notes:g.a?`Libro págs. ${g.a}–${g.b}.`:'',ses:g.ses})}}}
-  case 'lengua':{let it=ortoSeq().find(x=>x.k===a.clave)||null;['cat','cas'].forEach(g=>LNG[g].M.forEach((m,mi)=>m[1].forEach((w,wi)=>items(g,mi,wi).forEach(x=>{if(x.k===a.clave)it=x}))));if(!it||typeof a.hecha!=='boolean')return no('lengua');
-    return {d:`${it.t}: ${a.hecha?'hecho':'pendiente'}`,run:()=>{if(a.hecha)S.done[it.k]=S.done[it.k]||T0();else delete S.done[it.k]}}}
+  case 'lengua':{let it=ortoSeq().find(x=>x.k===a.clave)||null;['cat','cas'].forEach(g=>LNG[g].M.forEach((m,mi)=>m[1].forEach((w,wi)=>items(g,mi,wi).forEach(x=>{if(x.k===a.clave)it=x}))));const hf=typeof a.fecha==='string';if(!it||(typeof a.hecha!=='boolean'&&!hf))return no('lengua');if(hf&&a.fecha&&!isD(a.fecha))return no('fecha');
+    const dd=[];if(typeof a.hecha==='boolean')dd.push(a.hecha?'hecho':'pendiente');if(hf)dd.push(a.fecha?'se trabajará el '+fl(a.fecha):'sin día fijo');
+    return {d:`${it.t}: ${dd.join(', ')}`,run:()=>{if(a.hecha===true)S.done[it.k]=S.done[it.k]||T0();else if(a.hecha===false)delete S.done[it.k];if(hf){S.lpin=S.lpin||{};if(a.fecha)S.lpin[it.k]=a.fecha;else delete S.lpin[it.k]}}}}
   case 'control':{const Lg=LNG[a.lengua],m=Lg&&Number.isInteger(a.mes)&&Lg.M[a.mes];if(!m)return no('control');if(a.fecha&&!isD(a.fecha))return no('fecha');const k=a.lengua+'-'+a.mes;
     return {d:`Control de ${m[0]} (${Lg.n}): ${a.fecha?fl(a.fecha):'sin fecha'}`,run:()=>{S.ctl=S.ctl||{};if(a.fecha)S.ctl[k]=a.fecha;else delete S.ctl[k]}}}}
   return no('desconocida')}
