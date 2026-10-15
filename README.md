@@ -18,11 +18,13 @@ Los datos se guardan en un almacén privado de Vercel y se sincronizan entre dis
    - Value: la contraseña que quieras para entrar en la app. Solo la sabrás tú.
    - Environments: deja marcados **Production** y **Preview**. Pulsa **Save**.
 5. **Vuelve a publicar.** Ve a **Deployments**, abre el último despliegue, pulsa el menú **⋯** y elige **Redeploy**. Así la app ya tiene el almacén y la contraseña.
-6. **Abre la app.** La dirección aparece en **Domains** (algo como `programacion-aula.vercel.app`). Ábrela y escribe tu contraseña. Cada dispositivo la pide una vez.
+6. **Abre la app.** La dirección aparece en **Domains** (algo como `programacion-aula.vercel.app`). Ábrela y escribe tu contraseña en la pantalla de bienvenida.
    - En el móvil, puedes usar **Añadir a pantalla de inicio** para tenerla como una app más.
 
 ## Cómo funciona
 
+- Al abrir la app aparece una pantalla de bienvenida que pide la contraseña. La agenda y el horario no se ven hasta escribirla. Si recargas la misma pestaña, no la vuelve a pedir.
+- Sin conexión también se puede entrar, con la copia guardada en el dispositivo, si ya se había entrado antes en él.
 - Lo que marques o escribas se guarda en la nube y aparece en tus otros dispositivos al abrir la app o al volver a ella.
 - Si no hay conexión, los cambios se guardan en el dispositivo y se suben cuando vuelve la red.
 - Arriba a la derecha verás si los cambios se han guardado.

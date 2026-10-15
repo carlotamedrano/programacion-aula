@@ -60,10 +60,32 @@ a{color:var(--pri)}
 #sync{max-width:1100px;margin:0 auto;padding:8px 14px 0;text-align:right;font-size:.8rem;color:var(--muted);min-height:1.6em}
 #sync button{border:0;background:none;color:var(--pri);font-weight:600;padding:0 2px;font-size:inherit}
 #sync.err{color:var(--dng)}
+#lock{display:none}
+body.locked main,body.locked nav,body.locked #sync{display:none}
+body.locked #lock{display:flex;min-height:100vh;min-height:100dvh;align-items:center;justify-content:center;padding-block:24px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.lockcard{width:100%;max-width:380px;background:var(--paper);border:1px solid var(--line);border-top:4px solid var(--hl);border-radius:16px;padding:28px 22px 24px;display:flex;flex-direction:column}
+.lockday{margin:0 0 6px;color:var(--muted);font-size:.8rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase}
+#lockt{font-size:2rem;line-height:1.15;margin:0 0 6px;text-transform:none;text-wrap:balance}
+.lockcard .sub{margin:0 0 8px}
+#lockmsg{min-height:1.4em;margin:8px 0 10px;color:var(--dng);font-size:.9rem}
+#lockgo{width:100%;padding:11px 14px}
+#lockgo:disabled{opacity:.6}
 @media(prefers-reduced-motion:no-preference){.bar i{transition:width .25s}}
 </style>
 </head>
-<body>
+<body class="locked">
+<section id="lock" aria-labelledby="lockt">
+<form id="lockf" class="lockcard">
+<p class="lockday" id="lockday"></p>
+<h1 id="lockt">¡Hola Carlota!</h1>
+<p class="sub">Escribe tu contraseña para ver tu agenda y tu horario.</p>
+<input type="text" name="username" value="carlota" autocomplete="username" hidden>
+<label for="lockpw">Contraseña</label>
+<input id="lockpw" type="password" autocomplete="current-password" required>
+<p id="lockmsg" role="alert"></p>
+<button class="pri" id="lockgo" type="submit">Entrar</button>
+</form>
+</section>
 <div id="sync" role="status" aria-live="polite"></div>
 <main id="view"></main>
 <nav id="nav"></nav>
@@ -88,7 +110,7 @@ const DEF=JSON.stringify(S);
 let tab="hoy",filtro="Todos";
 try{const r=localStorage.getItem("progaula");if(r)S=Object.assign(S,JSON.parse(r))}catch(e){}
 const SY={pw:"",rev:0,dirty:false,ready:false,busy:false,again:false,timer:0};
-try{SY.pw=localStorage.getItem("progaula-clave")||"";SY.rev=Number(localStorage.getItem("progaula-rev"))||0;localStorage.removeItem("progaula-etag");SY.dirty=localStorage.getItem("progaula-dirty")==="1"}catch(e){}
+try{localStorage.removeItem("progaula-clave");SY.pw=sessionStorage.getItem("progaula-clave")||"";SY.rev=Number(localStorage.getItem("progaula-rev"))||0;localStorage.removeItem("progaula-etag");SY.dirty=localStorage.getItem("progaula-dirty")==="1"}catch(e){}
 const keep=()=>{try{localStorage.setItem("progaula",JSON.stringify(S));localStorage.setItem("progaula-rev",String(SY.rev));localStorage.setItem("progaula-dirty",SY.dirty?"1":"")}catch(e){}};
 const save=()=>{SY.dirty=true;keep();clearTimeout(SY.timer);SY.timer=setTimeout(push,700)};
 function applySeeds(){
@@ -371,39 +393,51 @@ document.addEventListener("change",e=>{
   const t=e.target.dataset&&e.target.dataset.tg;if(!t)return;
   const[id,i]=t.split(":");const u=S.units.find(x=>x.id===id);if(u){u.ses[+i].done=e.target.checked;save();render()}
 });
-function status(t,err,act){const e=$("#sync");e.className=err?"err":"";e.innerHTML=esc(t)+(act?` <button type="button" data-pw="1">${esc(act)}</button>`:"")}
+function status(t,err){const e=$("#sync");e.className=err?"err":"";e.textContent=t}
 function adopt(r){S=Object.assign(JSON.parse(DEF),r.data);SY.rev=r.rev;SY.dirty=false;const b=JSON.stringify(S);applySeeds();if(JSON.stringify(S)!==b)SY.dirty=true;keep()}
 async function api(method,body){return fetch("/api/state",{method,cache:"no-store",headers:Object.assign({"x-clave":SY.pw},body?{"content-type":"application/json"}:{}),body:body?JSON.stringify(body):undefined})}
-function bad(r){if(r.status===401){SY.pw="";try{localStorage.removeItem("progaula-clave")}catch(e){}SY.ready=false;status("Contraseña incorrecta.",1,"Escribirla");askPw("La contraseña no es correcta. Vuelve a escribirla.");return 1}
+const OFF="Sin conexión. Los cambios se guardan en este dispositivo y se subirán al volver la conexión.";
+function bad(r){if(r.status===401){lock("La contraseña ha cambiado. Vuelve a escribirla.");return 1}
   if(r.status===500){r.clone().json().then(j=>{if(j.error==="sin_clave")status("Falta poner la contraseña en Vercel (APP_PASSWORD).",1)}).catch(()=>{});status("No se ha podido conectar con el servidor. Los cambios se guardan en este dispositivo.",1);return 1}return 0}
-async function pull(){if(!SY.pw){askPw();return}
+const shown=()=>!document.body.classList.contains("locked")&&!$("#modal").classList.contains("on");
+async function pull(){if(!SY.pw)return;
   if(SY.busy){SY.again=true;return}SY.busy=true;status("Sincronizando…");
   let note="";try{const r=await api("GET");if(bad(r))return;const j=await r.json();SY.ready=true;
     if(!j.data)SY.dirty=true;
     else if(SY.rev===0||j.rev>SY.rev){const lost=SY.rev>0&&SY.dirty;adopt(j);if(lost)note="Había cambios hechos en otro dispositivo y se han cargado. Si tu último cambio no aparece, vuelve a hacerlo."}
-    if(!$("#modal").classList.contains("on"))render();
+    if(shown())render();
     note?status(note,1):status(SY.dirty?"Guardando…":"Guardado en la nube.")}
-  catch(e){status("Sin conexión. Los cambios se guardan en este dispositivo y se subirán al volver la conexión.",1)}
+  catch(e){status(OFF,1)}
   finally{SY.busy=false}
   if(SY.dirty&&SY.ready)push();else if(SY.again){SY.again=false;pull()}}
 async function push(){if(!SY.ready||!SY.pw||!SY.dirty)return;if(SY.busy){SY.again=true;return}SY.busy=true;status("Guardando…");
   try{const r=await api("PUT",{rev:SY.rev,data:S});
-    if(r.status===409){adopt(await r.json());if(!$("#modal").classList.contains("on"))render();status("Había cambios hechos en otro dispositivo y se han cargado. Si tu último cambio no aparece, vuelve a hacerlo.",1)}
+    if(r.status===409){adopt(await r.json());if(shown())render();status("Había cambios hechos en otro dispositivo y se han cargado. Si tu último cambio no aparece, vuelve a hacerlo.",1)}
     else if(!bad(r)){const j=await r.json();SY.rev=j.rev;SY.dirty=false;keep();status("Guardado en la nube.")}}
-  catch(e){status("Sin conexión. Los cambios se guardan en este dispositivo y se subirán al volver la conexión.",1)}
+  catch(e){status(OFF,1)}
   finally{SY.busy=false}
   if(SY.again){SY.again=false;SY.dirty?push():pull()}}
-function askPw(msg){const m=$("#modal");
-  m.innerHTML=`<form class="sheet" id="pwf"><h3>Contraseña</h3><p class="muted">${esc(msg||"Escribe la contraseña de la app para ver y guardar tus datos en todos tus dispositivos. Este dispositivo la recordará.")}</p><label for="pwi">Contraseña</label><input id="pwi" type="password" autocomplete="current-password" required><div class="row"><button class="pri" type="submit">Entrar</button><button class="btn" type="button" id="pwc">Ahora no</button></div></form>`;
-  m.classList.add("on");const close=()=>{m.classList.remove("on");m.innerHTML=""};
-  $("#pwf").onsubmit=e=>{e.preventDefault();SY.pw=$("#pwi").value;try{localStorage.setItem("progaula-clave",SY.pw)}catch(x){}close();pull()};
-  $("#pwc").onclick=()=>{close();status("Sin contraseña: los cambios solo se guardan en este dispositivo.",1,"Escribirla")};
-  $("#pwi").focus()}
-document.addEventListener("click",e=>{if(e.target.closest("[data-pw]"))askPw()});
-window.addEventListener("online",()=>{SY.dirty?push():pull()});
-document.addEventListener('visibilitychange',()=>{if(document.hidden){if(SY.dirty){clearTimeout(SY.timer);push()}return}if(!$('#modal').classList.contains('on'))render();if(SY.pw)SY.dirty?push():pull()});
-render();
-pull();
+// Pantalla de bienvenida: la app no se muestra hasta comprobar la contraseña.
+async function hashPw(p){try{const b=await crypto.subtle.digest("SHA-256",new TextEncoder().encode("progaula:"+p));return Array.from(new Uint8Array(b),x=>x.toString(16).padStart(2,"0")).join("")}catch(e){return ""}}
+function lock(msg){SY.pw="";SY.ready=false;try{sessionStorage.removeItem("progaula-clave")}catch(e){}
+  const m=$("#modal");m.classList.remove("on");m.innerHTML="";
+  const T=new Date();$("#lockday").textContent=DIA[wd(T)]+" "+T.getDate()+" de "+MES[T.getMonth()];
+  document.body.classList.add("locked");$("#lockmsg").textContent=msg||"";$("#lockpw").value="";setTimeout(()=>$("#lockpw").focus(),50)}
+function unlock(pw){SY.pw=pw;try{sessionStorage.setItem("progaula-clave",pw)}catch(e){}document.body.classList.remove("locked");render();window.scrollTo(0,0)}
+$("#lockf").onsubmit=async e=>{e.preventDefault();const pw=$("#lockpw").value,go=$("#lockgo"),msg=$("#lockmsg");if(!pw)return;
+  go.disabled=true;msg.textContent="";go.textContent="Comprobando…";
+  try{const r=await fetch("/api/state",{cache:"no-store",headers:{"x-clave":pw}});
+    if(r.status===401){msg.textContent="La contraseña no es correcta.";$("#lockpw").select();return}
+    if(!r.ok){let j={};try{j=await r.json()}catch(x){}msg.textContent=j.error==="sin_clave"?"Falta poner la contraseña en Vercel (APP_PASSWORD).":"No se ha podido conectar con el servidor. Inténtalo de nuevo.";return}
+    const h=await hashPw(pw);try{if(h)localStorage.setItem("progaula-h",h)}catch(x){}
+    unlock(pw);pull()}
+  catch(x){const h=await hashPw(pw);let saved="";try{saved=localStorage.getItem("progaula-h")||""}catch(y){}
+    if(h&&saved&&h===saved){unlock(pw);status("Sin conexión. Ves la copia guardada en este dispositivo; los cambios se subirán al volver la conexión.",1)}
+    else msg.textContent="Sin conexión. Conéctate a internet para entrar."}
+  finally{go.disabled=false;go.textContent="Entrar"}};
+window.addEventListener("online",()=>{if(SY.pw)SY.dirty?push():pull()});
+document.addEventListener('visibilitychange',()=>{if(document.hidden){if(SY.dirty){clearTimeout(SY.timer);push()}return}if(shown())render();if(SY.pw)SY.dirty?push():pull()});
+if(SY.pw){document.body.classList.remove("locked");render();pull()}else lock();
 </script>
 </body>
 </html>
