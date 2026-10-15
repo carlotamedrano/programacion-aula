@@ -75,6 +75,10 @@ a{color:var(--pri)}
 body.locked #aibtn{display:none}
 #aiout .card p{line-height:1.5}
 #aiout .ses{font-weight:400;margin:0}
+.subj{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.subj .mini{flex:1;min-width:60px;max-width:160px;height:8px;border-radius:4px;background:var(--line);overflow:hidden}
+.subj .mini i{display:block;height:100%;background:var(--pri)}
+.subj .pct{font-size:.9rem;font-weight:600;color:var(--pri);font-variant-numeric:tabular-nums}
 .fold summary{cursor:pointer;padding:2px 0}
 .fold[open] summary{margin-bottom:10px}
 .foldin .card{margin-bottom:10px}
@@ -189,6 +193,7 @@ if(!S.seed17){S.units=S.units.filter(x=>x.id!=='mates-u9');
 if(!S.seed18){S.done['cas-0-1-0']=1;S.seed18=1;save()}
 if(!S.seed19){if(S.cells['8-3']){S.cells['8-3'].alt=['Apadrinament','Cinefòrum emocional'];S.cells['8-3'].a0='2026-10-12'}S.seed19=1;save()}
 if(!S.seed20){S.sk=S.sk||{};S.sk['2026-10-14']=['medi'];S.seed20=1;save()}
+if(!S.seed22){const a=S.cells['7-3'],b=S.cells['8-3'];if(a&&b&&/MEDI/i.test(a.t)&&/EMOCIONAL/i.test(b.t)){S.cells['7-3']=b;S.cells['8-3']=a}S.seed22=1;save()}
 if(!S.seed21){Object.keys(S.cells).forEach(k=>{const c=S.cells[k];if(c&&c.t&&!c.k&&typeof c.s!=='string')c.s=guessCell(c)});S.units.forEach(u=>{if(typeof u.sj!=='string')u.sj=subj(u)});S.seed21=1;save()}
 }
 const $=s=>document.querySelector(s);
@@ -249,24 +254,32 @@ function unitCard(u){const n=u.ses.length,d=u.ses.filter(x=>x.done).length,p=n?M
     <div class="row" style="margin-top:8px"><button class="btn" data-addses="${u.id}">Añadir sesión</button><button class="btn" data-genp="${u.id}">Añadir por páginas</button>${n?`<button class="lnk" data-delses="${u.id}">Quitar sesiones</button>`:""}</div></div>`}
 function foldHtml(key,label,list){if(!list.length)return "";const op=openM[key]===true;
   return `<details class="card fold" data-m="${key}"${op?" open":""}><summary><b>${esc(label)}</b> <span class="muted">(${list.length})</span></summary><div class="foldin">${list.map(unitCard).join("")}</div></details>`}
-function langCard(g){const L=LNG[g],info=L.M.map((m,mi)=>{const all=m[1].flatMap((w,wi)=>items(g,mi,wi));return{m,mi,d:all.filter(x=>S.done[x.k]).length,n:all.length}}),mm=new Date().getMonth(),ci=mm>=8?mm-8:mm<=5?mm+4:9,cur=info[Math.min(ci,info.length-1)],late=info.slice(0,cur.mi).reduce((t,o)=>t+o.n-o.d,0);
-  const ready=info.filter(o=>{const t=L.M[o.mi][1].flatMap((w,wi)=>items(g,o.mi,wi)).filter(x=>/-[456]$/.test(x.k));return t.length&&t.every(x=>S.done[x.k])&&!S.done[g+'-'+o.mi+'-ctl']}).map(o=>o.m[0]);
-  const p=cur.n?Math.round(cur.d/cur.n*100):100;
-  return `<div class="card"><div class="row sp"><div style="min-width:0"><b>En curso: ${esc(cur.m[0])}</b><div class="muted">Temporalización mensual del libro</div></div><button class="lnk" data-golg="${g}">Abrir</button></div>
-    <div class="bar" role="progressbar" aria-valuenow="${p}" aria-valuemin="0" aria-valuemax="100"><i style="width:${p}%"></i></div><div class="muted">${cur.d} de ${cur.n} contenidos del mes</div>
-    ${late?`<div class="muted" style="margin-top:4px">Quedan ${late} contenido${late>1?"s":""} de meses anteriores.</div>`:""}
-    ${ready.length?`<div style="margin-top:6px"><b>Listo para control:</b> ${ready.map(esc).join(", ")}</div>`:""}</div>`}
+// Lenguas dentro de Programación: el mes en curso abierto, el resto en un desplegable.
+function langInfo(g){const L=LNG[g];return L.M.map((m,mi)=>{const its=m[1].map((w,wi)=>items(g,mi,wi)),all=its.flat();return{m,mi,its,d:all.filter(x=>S.done[x.k]).length,n:all.length}})}
+function langCur(info){const mm=new Date().getMonth(),ci=mm>=8?mm-8:mm<=5?mm+4:9;return info[Math.min(ci,info.length-1)]}
+function monthBody(g,o){return o.m[1].map((w,wi)=>{const it=o.its[wi],all=it.every(x=>S.done[x.k]);return `<div style='margin-top:10px'><div class='row sp'><b>Semana ${w[0]}</b><button class='lnk' data-wk='${g}:${o.mi}:${wi}'>${all?'Desmarcar semana':'Marcar semana'}</button></div>`+it.map(x=>`<label class='ses ${S.done[x.k]?'done':''}' style='font-weight:400;margin:0'><input type='checkbox' data-dn='${x.k}' ${S.done[x.k]?'checked':''}><span>${esc(x.t)}</span></label>`).join('')+'</div>'}).join('')+ctlBlock(o,g)}
+function langSection(g){const L=LNG[g],info=langInfo(g),cur=langCur(info),late=info.slice(0,cur.mi).filter(o=>o.d<o.n);
+  const ready=info.filter(o=>{const t=o.its.flat().filter(x=>/-[456]$/.test(x.k));return t.length&&t.every(x=>S.done[x.k])&&!S.done[g+'-'+o.mi+'-ctl']}).map(o=>o.m[0]);
+  let h=`<div class='card'><div class='row sp'><b>${esc(cur.m[0])}</b><span class='muted'>${cur.d} de ${cur.n} contenidos</span></div>`;
+  if(late.length)h+=`<div class='muted' style='margin-top:4px'>Quedan contenidos de ${late.map(o=>esc(o.m[0])).join(', ')}: los encontrarás en «Otros meses».</div>`;
+  if(ready.length)h+=`<div style='margin-top:4px'><b>Listo para control:</b> ${ready.map(esc).join(', ')}</div>`;
+  h+=monthBody(g,cur)+`</div>`;
+  const others=info.filter(o=>o!==cur),key='p-'+g+'-months';
+  h+=`<details class='card fold' data-m='${key}'${openM[key]?' open':''}><summary><b>Otros meses</b> <span class='muted'>(temporalización completa)</span></summary><div class='foldin'>`+others.map(o=>{const k2=g+o.mi;return `<details class='card' data-m='${k2}'${openM[k2]?' open':''}><summary><b>${esc(o.m[0])}</b> <span class='muted'>${o.d} de ${o.n}</span></summary>${monthBody(g,o)}</details>`}).join('')+`</div></details>`;
+  return {h,pct:cur.n?Math.round(cur.d/cur.n*100):100,what:cur.m[0]}}
+const subjHead=(label,pct,what)=>`<h2 class='subj'><span>${esc(label)}</span>${pct==null?'':`<span class='mini' role='progressbar' aria-label='${esc(what)}: ${pct}% completado' aria-valuenow='${pct}' aria-valuemin='0' aria-valuemax='100'><i style='width:${pct}%'></i></span><span class='pct'>${pct}%</span>`}</h2>`;
 const PG=[["mates","Matemàtiques"],["medi","Coneixement del medi"],["cat","Català"],["cas","Castellano"],["oral","Expressió oral"],["","Otras unidades"]];
 function vProg(){
-  let h=`<h1>Programación</h1><p class="sub">Lo que estáis trabajando ahora en cada asignatura. Las unidades próximas y las completadas están en los desplegables.</p><button class="pri" data-act="addunit">Nueva unidad</button>`;
+  let h=`<h1>Programación</h1><p class="sub">Lo que estáis trabajando ahora en cada asignatura, con su porcentaje hecho. Lo demás está en los desplegables.</p><button class="pri" data-act="addunit">Nueva unidad</button>`;
   if(!S.units.length)h+=`<div class="empty" style="margin-top:14px">Todavía no hay unidades. Crea la primera con sus fechas y sesiones.</div>`;
   PG.forEach(([k,label])=>{
-    if(k==="cat"||k==="cas"){h+=`<h2>${label}</h2>${langCard(k)}`;return}
+    if(k==="cat"||k==="cas"){const r=langSection(k);h+=subjHead(LNG[k].n,r.pct,r.what)+r.h;return}
     const us=S.units.filter(u=>(subj(u)||"")===k);if(!us.length)return;
     const done=us.filter(u=>u.ses.length&&u.ses.every(x=>x.done)),pend=us.filter(u=>u.ses.some(x=>!x.done)),empty=us.filter(u=>!u.ses.length);
     let cur=pend.filter(u=>u.ses.some(x=>x.done));if(!cur.length&&pend.length)cur=[pend[0]];
     const next=pend.filter(u=>!cur.includes(u)).concat(empty);
-    h+=`<h2>${label}</h2>`+(cur.length?cur.map(unitCard).join(""):`<div class="empty">No hay ninguna unidad en curso.</div>`)+foldHtml("p-"+k+"-next","Próximas unidades",next)+foldHtml("p-"+k+"-done","Unidades completadas",done)});
+    const cp=cur[0]&&cur[0].ses.length?Math.round(cur[0].ses.filter(x=>x.done).length/cur[0].ses.length*100):null;
+    h+=subjHead(label,cp,cur[0]?cur[0].title:'')+(cur.length?cur.map(unitCard).join(""):`<div class="empty">No hay ninguna unidad en curso.</div>`)+foldHtml("p-"+k+"-next","Próximas unidades",next)+foldHtml("p-"+k+"-done","Unidades completadas",done)});
   return h;
 }
 
@@ -307,8 +320,8 @@ cas:{n:'Castellano 6.º',T:'Tarea ',F:'Ficha ',ds:['Comunicación oral','Compete
 const lab=(L,c)=>c.replace(/^T/,L.T).replace(/^F/,L.F);
 function items(g,mi,wi){const L=LNG[g],w=L.M[mi][1][wi],k=g+'-'+mi+'-'+wi+'-';if(w[1][0]==='*')return[{k:k+'x',t:w[1].slice(1)}];return w[1].split('|').map((c,i)=>c?{k:k+i,t:L.ds[i]+': '+lab(L,c)}:null).filter(Boolean)}
 function markWeek(s){const a=s.split(':'),it=items(a[0],+a[1],+a[2]),all=it.every(x=>S.done[x.k]);it.forEach(x=>{if(all)delete S.done[x.k];else if(!S.done[x.k])S.done[x.k]=T0()});save();render()}
-function ctlBlock(o){const all=o.its.flat().filter(x=>/-[456]$/.test(x.k)),d=all.filter(x=>S.done[x.k]).length,n=all.length,c=S.ctl[lg+'-'+o.mi];
-  return `<div style='margin-top:12px;padding-top:10px;border-top:1px solid var(--line)'><b>Control</b><div class='muted'>Ortografía, gramática y vocabulario: ${d} de ${n}</div>${d===n&&!S.done[lg+'-'+o.mi+'-ctl']?`<div style='margin-top:4px'><b>Ya podéis programar el control.</b></div>`:''}<label class='ses ${S.done[lg+'-'+o.mi+'-ctl']?'done':''}' style='font-weight:400;margin:6px 0 0'><input type='checkbox' data-dn='${lg}-${o.mi}-ctl' ${S.done[lg+'-'+o.mi+'-ctl']?'checked':''}><span>Control hecho</span></label><div style='margin-top:6px'><button class='btn' data-ctl='${lg}:${o.mi}'>${c?'Control: '+fdate(c):'Poner fecha'}</button></div></div>`}
+function ctlBlock(o,g){g=g||lg;const all=o.its.flat().filter(x=>/-[456]$/.test(x.k)),d=all.filter(x=>S.done[x.k]).length,n=all.length,c=S.ctl[g+'-'+o.mi];
+  return `<div style='margin-top:12px;padding-top:10px;border-top:1px solid var(--line)'><b>Control</b><div class='muted'>Ortografía, gramática y vocabulario: ${d} de ${n}</div>${d===n&&!S.done[g+'-'+o.mi+'-ctl']?`<div style='margin-top:4px'><b>Ya podéis programar el control.</b></div>`:''}<label class='ses ${S.done[g+'-'+o.mi+'-ctl']?'done':''}' style='font-weight:400;margin:6px 0 0'><input type='checkbox' data-dn='${g}-${o.mi}-ctl' ${S.done[g+'-'+o.mi+'-ctl']?'checked':''}><span>Control hecho</span></label><div style='margin-top:6px'><button class='btn' data-ctl='${g}:${o.mi}'>${c?'Control: '+fdate(c):'Poner fecha'}</button></div></div>`}
 function setCtl(s){const a=s.split(':'),k=a[0]+'-'+a[1];modal('Control de '+LNG[a[0]].M[+a[1]][0],[{k:'d',label:'Fecha del control',type:'date',value:S.ctl[k]||''}],d=>{if(d.d)S.ctl[k]=d.d;else delete S.ctl[k]},S.ctl[k]?()=>{delete S.ctl[k]}:null)}
 function vLeng(){
   const L=LNG[lg];
@@ -424,8 +437,9 @@ function vAgenda(){const E=sched(),T=new Date(),t0=iso(T);
   else{const r=printList(E);h+=r.length?r.map(o=>{const n=Math.round((dt(o.e)-dt(t0))/864e5);return `<div class='card'><b>${Fl(o.e)}</b> <span class='muted'>(${n===0?'hoy':n===1?'mañana':'en '+n+' días'})</span><div>${esc(o.p)}</div><div class='muted'>${esc(o.u)}. Imprimir antes del ${fl(prevDay(o.e))}.</div></div>`}).join(''):`<div class='empty'>No hay nada pendiente de imprimir. Al editar una sesión puedes poner la fecha y qué imprimir.</div>`}
   return h}
 function render(){
-  $("#nav").innerHTML=[["hoy","Agenda"],["horario","Horario"],["prog","Programación"],["leng","Lenguas"],["rec","Recursos"]].map(t=>`<button data-tab="${t[0]}" ${tab===t[0]?'aria-current="page"':""}>${t[1]}</button>`).join("");
-  $("#view").innerHTML=({hoy:vAgenda,horario:vHorario,prog:vProg,leng:vLeng,rec:vRec})[tab]();
+  $("#nav").innerHTML=[["hoy","Agenda"],["horario","Horario"],["prog","Programación"],["rec","Recursos"]].map(t=>`<button data-tab="${t[0]}" ${tab===t[0]?'aria-current="page"':""}>${t[1]}</button>`).join("");
+  if(tab==="leng")tab="prog";
+  $("#view").innerHTML=({hoy:vAgenda,horario:vHorario,prog:vProg,rec:vRec})[tab]();
 }
 
 function unitForm(u){
@@ -488,7 +502,6 @@ document.addEventListener("click",e=>{
   else if(D.resch){const[id,i]=D.resch.split(":"),u=S.units.find(x=>x.id===id);if(u){const x=u.ses[+i];if(['mates','medi','oral'].includes(subj(u))){delete x.d;save();render()}else editSes(D.resch)}}
   else if(D.bk){backupsUI()}
   else if(D.aiopen){aiUI()}
-  else if(D.golg){lg=D.golg;tab='leng';render();window.scrollTo(0,0)}
   else if(D.editunit){const u=S.units.find(x=>x.id===D.editunit);modal("Editar unidad",unitForm(u),d=>{Object.assign(u,d)},()=>{S.units=S.units.filter(x=>x!==u)})}
   else if(D.addses){const u=S.units.find(x=>x.id===D.addses);modal("Nueva sesión",[{k:"t",label:"Qué vas a trabajar",type:"textarea",value:"",req:1},{k:"d",label:"Fecha (opcional)",type:"date",value:""},{k:"p",label:"Qué hay que imprimir (opcional)",value:"",ph:"Ej. ficha de repaso"}],d=>{if(d.t){const x={t:d.t,done:false};if(d.d)x.d=d.d;if(d.p)x.p=d.p;u.ses.push(x)}})}
   else if(D.delses){const u=S.units.find(x=>x.id===D.delses);modal("Quitar sesiones",[{k:"i",label:"Sesión",type:"select",options:u.ses.map((x,i)=>[i,x.t.slice(0,50)]),value:0}],d=>{u.ses.splice(+d.i,1)})}
