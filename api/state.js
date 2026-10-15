@@ -1,6 +1,7 @@
 // Guarda y devuelve el estado de la app en un almacén privado de Vercel Blob.
 // Solo responde si la cabecera x-clave coincide con la variable APP_PASSWORD.
-import { get, put, BlobPreconditionFailedError } from '@vercel/blob';
+// Cada guardado lleva un número de versión (rev) para detectar cambios hechos en otro dispositivo.
+import { get, put } from '@vercel/blob';
 import { createHash, timingSafeEqual } from 'node:crypto';
 
 const PATH = 'progaula/estado.json';
@@ -27,15 +28,16 @@ async function check(req) {
 async function read() {
   const r = await get(PATH, { access: 'private', useCache: false });
   if (!r || r.statusCode !== 200) return null;
-  const text = await new Response(r.stream).text();
-  return { etag: r.blob.etag, data: JSON.parse(text) };
+  const p = JSON.parse(await new Response(r.stream).text());
+  if (p && typeof p.rev === 'number' && p.data && typeof p.data === 'object') return { rev: p.rev, data: p.data };
+  return { rev: 0, data: p }; // formato antiguo, sin número de versión
 }
 
 export async function GET(req) {
   const denied = await check(req);
   if (denied) return denied;
   try {
-    return json((await read()) || { etag: null, data: null });
+    return json((await read()) || { rev: 0, data: null });
   } catch (e) {
     console.error(e);
     return json({ error: 'leer' }, 500);
@@ -50,18 +52,23 @@ export async function PUT(req) {
   if (!body || typeof body.data !== 'object' || body.data === null || Array.isArray(body.data)) {
     return json({ error: 'formato' }, 400);
   }
-  const text = JSON.stringify(body.data);
-  if (text.length > 3_000_000) return json({ error: 'demasiado_grande' }, 413);
-  const opts = { access: 'private', contentType: 'application/json', addRandomSuffix: false, cacheControlMaxAge: 60 };
-  if (body.etag) opts.ifMatch = body.etag;
-  else opts.allowOverwrite = false;
+  const base = Number(body.rev) || 0;
   try {
-    const r = await put(PATH, text, opts);
-    return json({ etag: r.etag });
+    const cur = await read();
+    // Otro dispositivo guardó una versión más nueva: se devuelve para que la app la cargue.
+    if (cur && cur.rev > base) return json(cur, 409);
+    const rev = Math.max(base, cur ? cur.rev : 0) + 1;
+    const text = JSON.stringify({ rev, data: body.data });
+    if (text.length > 3_000_000) return json({ error: 'demasiado_grande' }, 413);
+    await put(PATH, text, {
+      access: 'private',
+      contentType: 'application/json',
+      addRandomSuffix: false,
+      allowOverwrite: true,
+      cacheControlMaxAge: 60,
+    });
+    return json({ rev });
   } catch (e) {
-    // Otro dispositivo guardó antes: se devuelve la versión actual para que la app la cargue.
-    const cur = await read().catch(() => null);
-    if (cur && (e instanceof BlobPreconditionFailedError || !body.etag)) return json(cur, 409);
     console.error(e);
     return json({ error: 'guardar' }, 500);
   }

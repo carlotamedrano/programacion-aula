@@ -87,9 +87,9 @@ return m})(),units:[],res:[],done:{},seed:0};
 const DEF=JSON.stringify(S);
 let tab="hoy",filtro="Todos";
 try{const r=localStorage.getItem("progaula");if(r)S=Object.assign(S,JSON.parse(r))}catch(e){}
-const SY={pw:"",etag:null,dirty:false,ready:false,busy:false,again:false,timer:0};
-try{SY.pw=localStorage.getItem("progaula-clave")||"";SY.etag=localStorage.getItem("progaula-etag")||null;SY.dirty=localStorage.getItem("progaula-dirty")==="1"}catch(e){}
-const keep=()=>{try{localStorage.setItem("progaula",JSON.stringify(S));localStorage.setItem("progaula-etag",SY.etag||"");localStorage.setItem("progaula-dirty",SY.dirty?"1":"")}catch(e){}};
+const SY={pw:"",rev:0,dirty:false,ready:false,busy:false,again:false,timer:0};
+try{SY.pw=localStorage.getItem("progaula-clave")||"";SY.rev=Number(localStorage.getItem("progaula-rev"))||0;localStorage.removeItem("progaula-etag");SY.dirty=localStorage.getItem("progaula-dirty")==="1"}catch(e){}
+const keep=()=>{try{localStorage.setItem("progaula",JSON.stringify(S));localStorage.setItem("progaula-rev",String(SY.rev));localStorage.setItem("progaula-dirty",SY.dirty?"1":"")}catch(e){}};
 const save=()=>{SY.dirty=true;keep();clearTimeout(SY.timer);SY.timer=setTimeout(push,700)};
 function applySeeds(){
 if(!S.done)S.done={};
@@ -372,24 +372,24 @@ document.addEventListener("change",e=>{
   const[id,i]=t.split(":");const u=S.units.find(x=>x.id===id);if(u){u.ses[+i].done=e.target.checked;save();render()}
 });
 function status(t,err,act){const e=$("#sync");e.className=err?"err":"";e.innerHTML=esc(t)+(act?` <button type="button" data-pw="1">${esc(act)}</button>`:"")}
-function adopt(r){S=Object.assign(JSON.parse(DEF),r.data);SY.etag=r.etag;SY.dirty=false;const b=JSON.stringify(S);applySeeds();if(JSON.stringify(S)!==b)SY.dirty=true;keep()}
+function adopt(r){S=Object.assign(JSON.parse(DEF),r.data);SY.rev=r.rev;SY.dirty=false;const b=JSON.stringify(S);applySeeds();if(JSON.stringify(S)!==b)SY.dirty=true;keep()}
 async function api(method,body){return fetch("/api/state",{method,cache:"no-store",headers:Object.assign({"x-clave":SY.pw},body?{"content-type":"application/json"}:{}),body:body?JSON.stringify(body):undefined})}
 function bad(r){if(r.status===401){SY.pw="";try{localStorage.removeItem("progaula-clave")}catch(e){}SY.ready=false;status("Contraseña incorrecta.",1,"Escribirla");askPw("La contraseña no es correcta. Vuelve a escribirla.");return 1}
   if(r.status===500){r.clone().json().then(j=>{if(j.error==="sin_clave")status("Falta poner la contraseña en Vercel (APP_PASSWORD).",1)}).catch(()=>{});status("No se ha podido conectar con el servidor. Los cambios se guardan en este dispositivo.",1);return 1}return 0}
 async function pull(){if(!SY.pw){askPw();return}
   if(SY.busy){SY.again=true;return}SY.busy=true;status("Sincronizando…");
-  try{const r=await api("GET");if(bad(r))return;const j=await r.json();SY.ready=true;
-    if(!j.etag){SY.etag=null;SY.dirty=true}
-    else if(!(SY.dirty&&SY.etag===j.etag))adopt(j);
+  let note="";try{const r=await api("GET");if(bad(r))return;const j=await r.json();SY.ready=true;
+    if(!j.data)SY.dirty=true;
+    else if(SY.rev===0||j.rev>SY.rev){const lost=SY.rev>0&&SY.dirty;adopt(j);if(lost)note="Había cambios hechos en otro dispositivo y se han cargado. Si tu último cambio no aparece, vuelve a hacerlo."}
     if(!$("#modal").classList.contains("on"))render();
-    status(SY.dirty?"Guardando…":"Guardado en la nube.")}
+    note?status(note,1):status(SY.dirty?"Guardando…":"Guardado en la nube.")}
   catch(e){status("Sin conexión. Los cambios se guardan en este dispositivo y se subirán al volver la conexión.",1)}
   finally{SY.busy=false}
   if(SY.dirty&&SY.ready)push();else if(SY.again){SY.again=false;pull()}}
 async function push(){if(!SY.ready||!SY.pw||!SY.dirty)return;if(SY.busy){SY.again=true;return}SY.busy=true;status("Guardando…");
-  try{const r=await api("PUT",{etag:SY.etag,data:S});
+  try{const r=await api("PUT",{rev:SY.rev,data:S});
     if(r.status===409){adopt(await r.json());if(!$("#modal").classList.contains("on"))render();status("Había cambios hechos en otro dispositivo y se han cargado. Si tu último cambio no aparece, vuelve a hacerlo.",1)}
-    else if(!bad(r)){const j=await r.json();SY.etag=j.etag;SY.dirty=false;keep();status("Guardado en la nube.")}}
+    else if(!bad(r)){const j=await r.json();SY.rev=j.rev;SY.dirty=false;keep();status("Guardado en la nube.")}}
   catch(e){status("Sin conexión. Los cambios se guardan en este dispositivo y se subirán al volver la conexión.",1)}
   finally{SY.busy=false}
   if(SY.again){SY.again=false;SY.dirty?push():pull()}}
