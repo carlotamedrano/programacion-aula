@@ -193,6 +193,7 @@ if(!S.seed17){S.units=S.units.filter(x=>x.id!=='mates-u9');
 if(!S.seed18){S.done['cas-0-1-0']=1;S.seed18=1;save()}
 if(!S.seed19){if(S.cells['8-3']){S.cells['8-3'].alt=['Apadrinament','Cinefòrum emocional'];S.cells['8-3'].a0='2026-10-12'}S.seed19=1;save()}
 if(!S.seed20){S.sk=S.sk||{};S.sk['2026-10-14']=['medi'];S.seed20=1;save()}
+if(!S.seed23){if(S.done&&S.done['cat-1-2-4'])S.done['cat-1-2-4']='2026-10-15';S.seed23=1;save()}
 if(!S.seed22){const a=S.cells['7-3'],b=S.cells['8-3'];if(a&&b&&/MEDI/i.test(a.t)&&/EMOCIONAL/i.test(b.t)){S.cells['7-3']=b;S.cells['8-3']=a}S.seed22=1;save()}
 if(!S.seed21){Object.keys(S.cells).forEach(k=>{const c=S.cells[k];if(c&&c.t&&!c.k&&typeof c.s!=='string')c.s=guessCell(c)});S.units.forEach(u=>{if(typeof u.sj!=='string')u.sj=subj(u)});S.seed21=1;save()}
 }
@@ -264,6 +265,8 @@ function langSection(g){const L=LNG[g],info=langInfo(g),cur=langCur(info),late=i
   if(late.length)h+=`<div class='muted' style='margin-top:4px'>Quedan contenidos de ${late.map(o=>esc(o.m[0])).join(', ')}: los encontrarás en «Otros meses».</div>`;
   if(ready.length)h+=`<div style='margin-top:4px'><b>Listo para control:</b> ${ready.map(esc).join(', ')}</div>`;
   h+=monthBody(g,cur)+`</div>`;
+  if(g==='cat'){const ds=ortoSeq().filter(x=>x.dict),dd=ds.filter(x=>S.done[x.k]).length,kd='p-cat-dict';
+    h+=`<details class='card fold' data-m='${kd}'${openM[kd]?' open':''}><summary><b>Dictats d'ortografia</b> <span class='muted'>${dd} de ${ds.length}</span></summary><p class='hint' style='margin:0 0 6px'>Se alternan con las fichas en el taller de ortografía de los jueves: Dictat 1, Fitxa 4, Dictat 2, Fitxa 5…</p>${ds.map(x=>`<label class='ses ${S.done[x.k]?'done':''}' style='font-weight:400;margin:0'><input type='checkbox' data-dn='${x.k}' ${S.done[x.k]?'checked':''}><span>${esc(x.t.replace('Ortografia: ',''))}</span></label>`).join('')}</details>`}
   const others=info.filter(o=>o!==cur),key='p-'+g+'-months';
   h+=`<details class='card fold' data-m='${key}'${openM[key]?' open':''}><summary><b>Otros meses</b> <span class='muted'>(temporalización completa)</span></summary><div class='foldin'>`+others.map(o=>{const k2=g+o.mi;return `<details class='card' data-m='${k2}'${openM[k2]?' open':''}><summary><b>${esc(o.m[0])}</b> <span class='muted'>${o.d} de ${o.n}</span></summary>${monthBody(g,o)}</details>`}).join('')+`</div></details>`;
   return {h,pct:cur.n?Math.round(cur.d/cur.n*100):100,what:cur.m[0]}}
@@ -365,9 +368,12 @@ function sched(){const E={},P={mates:[],medi:[]},D={},O=[],used={},t0=T0();
     ['mates','medi'].forEach(s=>{if(s==='mates'&&(w===2||w===4))return;if(skipped(k,s))return;const m=slotsFor(w,s,k).length;for(let j=D[k+s]||0;j<m&&P[s].length;j++)E[P[s].shift()]=k})}
   LP=langPlan();return E}
 let LP={};
+// Ortografía de Català: a partir de la Fitxa 4 se alterna un dictado antes de cada ficha (Dictat 1, Fitxa 4, Dictat 2, Fitxa 5…).
+const DICT_AFTER=3;
+function ortoSeq(){const r=[];let n=0;LNG.cat.M.forEach((m,mi)=>m[1].forEach((w,wi)=>items('cat',mi,wi).forEach(x=>{if(x.k.split('-').pop()!=='4')return;const f=+((/(\d+)/.exec(x.t)||[])[1]||0);if(f>DICT_AFTER){n++;r.push({k:'dict-'+n,t:'Ortografia: Dictat '+n,dict:n})}r.push(x)})));return r}
 function langPlan(){const pool={},out={},t0=T0();
   const mk=(g,ks)=>{const r=[],L=LNG[g];for(let mi=0;mi<L.M.length;mi++)for(let wi=0;wi<L.M[mi][1].length;wi++)for(const x of items(g,mi,wi)){const i=+x.k.split('-').pop();if(ks.indexOf(i)>-1&&(!S.done[x.k]||S.done[x.k]===t0))r.push(x)}return r};
-  pool.cG=mk('cat',[2,5,6]);pool.cO=mk('cat',[4]);pool.sp=mk('cas',[2,4,5,6]);let hs=null;
+  pool.cG=mk('cat',[2,5,6]);pool.cO=ortoSeq().filter(x=>!S.done[x.k]||S.done[x.k]===t0);pool.sp=mk('cas',[2,4,5,6]);let hs=null;
   for(let n=0;n<260;n++){const d=addD(new Date(),n),w=wd(d),k=iso(d);if(w>4||(S.off||[]).includes(k)||(S.lt||[]).includes(k)||k>'2027-06-21')continue;
     let gG=0,gS=0;
     S.slots.forEach((h,i)=>{const c=S.cells[i+'-'+w],s=cs(c);if(!s||c.n||c.alt||blocked(k,i)||skipped(k,s))return;
@@ -575,6 +581,7 @@ function aiContext(){const E=sched(),t0=T0(),L=[];
   const first={};Object.keys(LP).sort().forEach(k=>{const o=LP[k];if(o&&!first[o.k])first[o.k]=k.split('#')[0]});
   ['cat','cas'].forEach(g=>{const Lg=LNG[g];let n=0;L.push(`\nLENGUA ${Lg.n}: próximos contenidos pendientes (clave | contenido | mes | fecha prevista)`);
     Lg.M.forEach((m,mi)=>m[1].forEach((w,wi)=>items(g,mi,wi).forEach(x=>{if(!S.done[x.k]&&n<25){n++;L.push(`${x.k} | ${x.t} | ${m[0]} semana ${w[0]} | ${first[x.k]||'-'}`)}})));
+    if(g==='cat'){L.push('Dictados de ortografía pendientes (clave | contenido | fecha prevista):');ortoSeq().filter(x=>x.dict&&!S.done[x.k]).slice(0,6).forEach(x=>L.push(`${x.k} | ${x.t} | ${first[x.k]||'-'}`))}
     L.push(`Controles de ${Lg.n} (índice del mes | mes | fecha | hecho)`);Lg.M.forEach((m,mi)=>L.push(`${mi} | ${m[0]} | ${(S.ctl||{})[g+'-'+mi]||'-'} | ${S.done[g+'-'+mi+'-ctl']?'sí':'no'}`))});
   return L.join('\n')}
 function aiPrep(a){const no=m=>({err:m});if(!a||typeof a!=='object')return no('vacía');const U=id=>S.units.find(x=>x.id===id);
@@ -595,7 +602,7 @@ function aiPrep(a){const no=m=>({err:m});if(!a||typeof a!=='object')return no('v
     const g=genSessions({g_a:String(a.desde||''),g_b:String(a.hasta||''),g_skip:(Array.isArray(a.saltar)?a.saltar:[]).join(','),g_n:String(a.por||2),g_end:ex.map(e=>({repaso:'rep',ficha:'fic',control:'ctl'})[e]).filter(Boolean)});if(g.err)return no(g.err);
     const sj=['mates','medi','oral'].includes(a.agenda)?a.agenda:'';
     return {d:`Nueva unidad «${t}»${g.ses.length?`, con ${g.ses.length} sesiones`:''}`,run:()=>{S.units.push({id:uid(),title:t,subject:String(a.asignatura||''),sj,start:'',end:'',notes:g.a?`Libro págs. ${g.a}–${g.b}.`:'',ses:g.ses})}}}
-  case 'lengua':{let it=null;['cat','cas'].forEach(g=>LNG[g].M.forEach((m,mi)=>m[1].forEach((w,wi)=>items(g,mi,wi).forEach(x=>{if(x.k===a.clave)it=x}))));if(!it||typeof a.hecha!=='boolean')return no('lengua');
+  case 'lengua':{let it=ortoSeq().find(x=>x.k===a.clave)||null;['cat','cas'].forEach(g=>LNG[g].M.forEach((m,mi)=>m[1].forEach((w,wi)=>items(g,mi,wi).forEach(x=>{if(x.k===a.clave)it=x}))));if(!it||typeof a.hecha!=='boolean')return no('lengua');
     return {d:`${it.t}: ${a.hecha?'hecho':'pendiente'}`,run:()=>{if(a.hecha)S.done[it.k]=S.done[it.k]||T0();else delete S.done[it.k]}}}
   case 'control':{const Lg=LNG[a.lengua],m=Lg&&Number.isInteger(a.mes)&&Lg.M[a.mes];if(!m)return no('control');if(a.fecha&&!isD(a.fecha))return no('fecha');const k=a.lengua+'-'+a.mes;
     return {d:`Control de ${m[0]} (${Lg.n}): ${a.fecha?fl(a.fecha):'sin fecha'}`,run:()=>{S.ctl=S.ctl||{};if(a.fecha)S.ctl[k]=a.fecha;else delete S.ctl[k]}}}}
