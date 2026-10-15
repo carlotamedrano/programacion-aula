@@ -1,12 +1,12 @@
-// Guarda y devuelve el estado de la app. Solo responde con la contraseña correcta (cabecera x-clave).
-// Cada guardado lleva un número de versión (rev) para detectar cambios hechos en otro dispositivo.
-import { json, check, read, write, backupIfDue } from './_lib.js';
+// Guarda y devuelve el estado de cada profesor. Cada guardado lleva un número de versión (rev)
+// para detectar cambios hechos en otro dispositivo.
+import { json, auth, read, write, backupIfDue } from './_lib.js';
 
 export async function GET(req) {
-  const denied = await check(req);
-  if (denied) return denied;
+  const a = await auth(req);
+  if (a.res) return a.res;
   try {
-    const cur = await read();
+    const cur = await read(a.user.id);
     return json(cur ? { rev: cur.rev, data: cur.data } : { rev: 0, data: null });
   } catch (e) {
     console.error(e);
@@ -15,8 +15,9 @@ export async function GET(req) {
 }
 
 export async function PUT(req) {
-  const denied = await check(req);
-  if (denied) return denied;
+  const a = await auth(req);
+  if (a.res) return a.res;
+  const id = a.user.id;
   let body;
   try { body = await req.json(); } catch { return json({ error: 'formato' }, 400); }
   if (!body || typeof body.data !== 'object' || body.data === null || Array.isArray(body.data)) {
@@ -24,12 +25,11 @@ export async function PUT(req) {
   }
   const base = Number(body.rev) || 0;
   try {
-    const cur = await read();
-    // Otro dispositivo guardó una versión más nueva: se devuelve para que la app la cargue.
+    const cur = await read(id);
     if (cur && cur.rev > base) return json({ rev: cur.rev, data: cur.data }, 409);
-    const bk = await backupIfDue(cur);
+    const bk = await backupIfDue(id, cur);
     const rev = Math.max(base, cur ? cur.rev : 0) + 1;
-    await write({ rev, data: body.data, bk });
+    await write(id, { rev, data: body.data, bk });
     return json({ rev });
   } catch (e) {
     console.error(e);

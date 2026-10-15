@@ -34,6 +34,14 @@ Los datos se guardan en un almacén privado de Vercel y se sincronizan entre dis
 - En **Programación**, una unidad nueva puede generar sus sesiones a partir de las páginas del libro.
 - Las mejoras se publican en este repositorio y Vercel actualiza la app sola en uno o dos minutos. Tus datos no se tocan.
 
+## Cuentas para compañeros
+
+- Se entra con **usuario y contraseña**. La cuenta `carlota` usa la contraseña de `APP_PASSWORD` y es la **administradora**.
+- Desde **Cuentas** (arriba a la derecha) Carlota crea las cuentas de sus compañeros con una contraseña inicial, puede ponerles una nueva, activar o quitar el asistente de IA y desactivarlas.
+- Cada cuenta tiene su propio horario, programación, copias de seguridad y datos; nadie ve los de los demás. Las cuentas nuevas empiezan vacías.
+- El **calendario del cole** (días sin clase, light, medias jornadas y notas del día) es común: lo ven y lo pueden editar todas las cuentas.
+- Cada compañero puede cambiar su contraseña con **Cambiar contraseña**, y **Salir** cierra la sesión en ese dispositivo.
+
 ## Asistente con IA
 
 El botón **Asistente** (abajo a la derecha) entiende peticiones como «el viernes hay excursión» o «hoy no he avanzado en Medi» y propone los cambios. No cambia nada hasta pulsar **Aplicar cambios**, y después se puede **Deshacer**.

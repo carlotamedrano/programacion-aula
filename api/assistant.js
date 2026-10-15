@@ -1,7 +1,7 @@
 // Asistente con IA (Vercel AI Gateway). Recibe la petición de Carlota y un resumen de su programación,
 // y devuelve una respuesta con cambios propuestos en JSON. La app los muestra y solo los aplica si ella confirma.
 import { getVercelOidcToken } from '@vercel/oidc';
-import { json, check } from './_lib.js';
+import { json, auth } from './_lib.js';
 
 // Se prueban en orden. Si un modelo no entra en el nivel gratuito, se pasa al siguiente.
 const MODELS = [
@@ -15,8 +15,9 @@ const MODELS = [
   'poolside/laguna-s-2.1-free',
 ].filter(Boolean);
 
-const SYSTEM = `Eres el asistente de la app de programación de aula de Carlota, maestra de 5è de Primària en Catalunya (también da Castellano en 6è).
+const SYSTEM = `Eres el asistente de la app de programación de aula de una maestra de Primària en Catalunya.
 Recibes un CONTEXTO con su horario, días especiales, unidades con sesiones y la temporalización de lenguas, y una PETICIÓN suya.
+La persona que te escribe se llama {{NOMBRE}}.
 Responde SIEMPRE con un único objeto JSON, sin texto antes ni después, con esta forma:
 {"respuesta": "texto breve en español, cercano y claro", "acciones": [ ... ]}
 
@@ -49,8 +50,9 @@ async function token() {
 const str = (x, n) => (typeof x === 'string' ? x.slice(0, n) : '');
 
 export async function POST(req) {
-  const denied = await check(req);
-  if (denied) return denied;
+  const au = await auth(req);
+  if (au.res) return au.res;
+  if (!au.user.ai) return json({ error: 'sin_permiso' }, 403);
   let body;
   try { body = await req.json(); } catch { return json({ error: 'formato' }, 400); }
   const pregunta = str(body && body.pregunta, 2000).trim();
@@ -64,9 +66,9 @@ export async function POST(req) {
   const tk = await token();
   if (!tk) return json({ error: 'sin_ia' }, 500);
   const messages = [
-    { role: 'system', content: SYSTEM },
+    { role: 'system', content: SYSTEM.replace('{{NOMBRE}}', au.user.name) },
     ...historial,
-    { role: 'user', content: `CONTEXTO:\n${contexto}\n\nPETICIÓN DE CARLOTA:\n${pregunta}` },
+    { role: 'user', content: `CONTEXTO:\n${contexto}\n\nPETICIÓN:\n${pregunta}` },
   ];
   let last = '';
   for (const model of [...new Set(MODELS)]) {
