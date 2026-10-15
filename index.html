@@ -75,6 +75,9 @@ a{color:var(--pri)}
 body.locked #aibtn{display:none}
 #aiout .card p{line-height:1.5}
 #aiout .ses{font-weight:400;margin:0}
+.fold summary{cursor:pointer;padding:2px 0}
+.fold[open] summary{margin-bottom:10px}
+.foldin .card{margin-bottom:10px}
 .bk{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 0;border-top:1px solid var(--line)}
 #lock{display:none}
 body.locked main,body.locked nav,body.locked #syncbar{display:none}
@@ -238,17 +241,32 @@ function vHorario(){
   return h+`</table></div><div class="row" style="margin-top:12px"><button class="btn" data-act="addslot">Añadir franja horaria</button></div>`;
 }
 
-function vProg(){
-  let h=`<h1>Programación</h1><p class="sub">Unidades didácticas y sus sesiones.</p><button class="pri" data-act="addunit">Nueva unidad</button><div style="height:14px"></div>`;
-  if(!S.units.length)h+=`<div class="empty">Todavía no hay unidades. Crea la primera con sus fechas y sesiones.</div>`;
-  S.units.forEach(u=>{
-    const n=u.ses.length,d=u.ses.filter(x=>x.done).length,p=n?Math.round(d/n*100):0;
-    h+=`<div class="card"><div class="row sp"><div><b>${esc(u.title)}</b><div class="muted">${esc(u.subject)}${u.start||u.end?" · "+fdate(u.start)+(u.end?" – "+fdate(u.end):""):""}</div></div><button class="lnk" data-editunit="${u.id}">Editar</button></div>
+function unitCard(u){const n=u.ses.length,d=u.ses.filter(x=>x.done).length,p=n?Math.round(d/n*100):0;
+  return `<div class="card"><div class="row sp"><div style="min-width:0"><b>${esc(u.title)}</b><div class="muted">${esc(u.subject)}${u.start||u.end?" · "+fdate(u.start)+(u.end?" – "+fdate(u.end):""):""}</div></div><button class="lnk" data-editunit="${u.id}">Editar</button></div>
     ${u.notes?`<div class="muted" style="margin-top:6px">${esc(u.notes)}</div>`:""}
     <div class="bar" role="progressbar" aria-valuenow="${p}" aria-valuemin="0" aria-valuemax="100"><i style="width:${p}%"></i></div><div class="muted">${d} de ${n} sesiones</div>
     ${u.ses.map((x,i)=>`<label class="ses ${x.done?"done":""}" style="font-weight:400;margin:0"><input type="checkbox" data-tg="${u.id}:${i}" ${x.done?"checked":""}><span>${esc(x.t)}${x.d?` <span class='muted'>· ${fdate(x.d)}</span>`:''}</span><button class='lnk' data-es='${u.id}:${i}' type='button' style='margin-left:auto'>Editar</button></label>`).join("")}
-    <div class="row" style="margin-top:8px"><button class="btn" data-addses="${u.id}">Añadir sesión</button><button class="btn" data-genp="${u.id}">Añadir por páginas</button>${n?`<button class="lnk" data-delses="${u.id}">Quitar sesiones</button>`:""}</div></div>`;
-  });
+    <div class="row" style="margin-top:8px"><button class="btn" data-addses="${u.id}">Añadir sesión</button><button class="btn" data-genp="${u.id}">Añadir por páginas</button>${n?`<button class="lnk" data-delses="${u.id}">Quitar sesiones</button>`:""}</div></div>`}
+function foldHtml(key,label,list){if(!list.length)return "";const op=openM[key]===true;
+  return `<details class="card fold" data-m="${key}"${op?" open":""}><summary><b>${esc(label)}</b> <span class="muted">(${list.length})</span></summary><div class="foldin">${list.map(unitCard).join("")}</div></details>`}
+function langCard(g){const L=LNG[g],info=L.M.map((m,mi)=>{const all=m[1].flatMap((w,wi)=>items(g,mi,wi));return{m,mi,d:all.filter(x=>S.done[x.k]).length,n:all.length}}),mm=new Date().getMonth(),ci=mm>=8?mm-8:mm<=5?mm+4:9,cur=info[Math.min(ci,info.length-1)],late=info.slice(0,cur.mi).reduce((t,o)=>t+o.n-o.d,0);
+  const ready=info.filter(o=>{const t=L.M[o.mi][1].flatMap((w,wi)=>items(g,o.mi,wi)).filter(x=>/-[456]$/.test(x.k));return t.length&&t.every(x=>S.done[x.k])&&!S.done[g+'-'+o.mi+'-ctl']}).map(o=>o.m[0]);
+  const p=cur.n?Math.round(cur.d/cur.n*100):100;
+  return `<div class="card"><div class="row sp"><div style="min-width:0"><b>En curso: ${esc(cur.m[0])}</b><div class="muted">Temporalización mensual del libro</div></div><button class="lnk" data-golg="${g}">Abrir</button></div>
+    <div class="bar" role="progressbar" aria-valuenow="${p}" aria-valuemin="0" aria-valuemax="100"><i style="width:${p}%"></i></div><div class="muted">${cur.d} de ${cur.n} contenidos del mes</div>
+    ${late?`<div class="muted" style="margin-top:4px">Quedan ${late} contenido${late>1?"s":""} de meses anteriores.</div>`:""}
+    ${ready.length?`<div style="margin-top:6px"><b>Listo para control:</b> ${ready.map(esc).join(", ")}</div>`:""}</div>`}
+const PG=[["mates","Matemàtiques"],["medi","Coneixement del medi"],["cat","Català"],["cas","Castellano"],["oral","Expressió oral"],["","Otras unidades"]];
+function vProg(){
+  let h=`<h1>Programación</h1><p class="sub">Lo que estáis trabajando ahora en cada asignatura. Las unidades próximas y las completadas están en los desplegables.</p><button class="pri" data-act="addunit">Nueva unidad</button>`;
+  if(!S.units.length)h+=`<div class="empty" style="margin-top:14px">Todavía no hay unidades. Crea la primera con sus fechas y sesiones.</div>`;
+  PG.forEach(([k,label])=>{
+    if(k==="cat"||k==="cas"){h+=`<h2>${label}</h2>${langCard(k)}`;return}
+    const us=S.units.filter(u=>(subj(u)||"")===k);if(!us.length)return;
+    const done=us.filter(u=>u.ses.length&&u.ses.every(x=>x.done)),pend=us.filter(u=>u.ses.some(x=>!x.done)),empty=us.filter(u=>!u.ses.length);
+    let cur=pend.filter(u=>u.ses.some(x=>x.done));if(!cur.length&&pend.length)cur=[pend[0]];
+    const next=pend.filter(u=>!cur.includes(u)).concat(empty);
+    h+=`<h2>${label}</h2>`+(cur.length?cur.map(unitCard).join(""):`<div class="empty">No hay ninguna unidad en curso.</div>`)+foldHtml("p-"+k+"-next","Próximas unidades",next)+foldHtml("p-"+k+"-done","Unidades completadas",done)});
   return h;
 }
 
@@ -435,7 +453,7 @@ function resForm(r){
 }
 
 document.addEventListener("click",e=>{
-  const b=e.target.closest("[data-tab],[data-cell],[data-slot],[data-act],[data-editunit],[data-addses],[data-delses],[data-editres],[data-f],[data-lg],[data-wk],[data-ctl],[data-av],[data-wo],[data-mo],[data-day],[data-off],[data-es],[data-nt],[data-genp],[data-eday],[data-dd],[data-resch],[data-bk],[data-aiopen]");
+  const b=e.target.closest("[data-tab],[data-cell],[data-slot],[data-act],[data-editunit],[data-addses],[data-delses],[data-editres],[data-f],[data-lg],[data-wk],[data-ctl],[data-av],[data-wo],[data-mo],[data-day],[data-off],[data-es],[data-nt],[data-genp],[data-eday],[data-dd],[data-resch],[data-bk],[data-aiopen],[data-golg]");
   if(!b)return;
   const D=b.dataset;
   if(D.tab){tab=D.tab;render();window.scrollTo(0,0)}
@@ -470,6 +488,7 @@ document.addEventListener("click",e=>{
   else if(D.resch){const[id,i]=D.resch.split(":"),u=S.units.find(x=>x.id===id);if(u){const x=u.ses[+i];if(['mates','medi','oral'].includes(subj(u))){delete x.d;save();render()}else editSes(D.resch)}}
   else if(D.bk){backupsUI()}
   else if(D.aiopen){aiUI()}
+  else if(D.golg){lg=D.golg;tab='leng';render();window.scrollTo(0,0)}
   else if(D.editunit){const u=S.units.find(x=>x.id===D.editunit);modal("Editar unidad",unitForm(u),d=>{Object.assign(u,d)},()=>{S.units=S.units.filter(x=>x!==u)})}
   else if(D.addses){const u=S.units.find(x=>x.id===D.addses);modal("Nueva sesión",[{k:"t",label:"Qué vas a trabajar",type:"textarea",value:"",req:1},{k:"d",label:"Fecha (opcional)",type:"date",value:""},{k:"p",label:"Qué hay que imprimir (opcional)",value:"",ph:"Ej. ficha de repaso"}],d=>{if(d.t){const x={t:d.t,done:false};if(d.d)x.d=d.d;if(d.p)x.p=d.p;u.ses.push(x)}})}
   else if(D.delses){const u=S.units.find(x=>x.id===D.delses);modal("Quitar sesiones",[{k:"i",label:"Sesión",type:"select",options:u.ses.map((x,i)=>[i,x.t.slice(0,50)]),value:0}],d=>{u.ses.splice(+d.i,1)})}
