@@ -27,7 +27,11 @@ Los datos se guardan en un almacén privado de Vercel y se sincronizan entre dis
 - Sin conexión también se puede entrar, con la copia guardada en el dispositivo, si ya se había entrado antes en él.
 - Lo que marques o escribas se guarda en la nube y aparece en tus otros dispositivos al abrir la app o al volver a ella.
 - Si no hay conexión, los cambios se guardan en el dispositivo y se suben cuando vuelve la red.
-- Arriba a la derecha verás si los cambios se han guardado.
+- Arriba a la derecha verás si los cambios se han guardado, y el enlace **Copias de seguridad**: el servidor guarda una copia automática como mucho cada 6 horas (se conservan las 30 últimas) y desde ahí se puede recuperar cualquiera.
+- En la **Agenda** se marca lo hecho directamente en cada hora, se pasa de un día a otro con las flechas y aparece un aviso con lo que quedó atrasado.
+- **Editar día** permite marcar un día sin clase (entero, solo mañana o solo tarde), un día light, una nota y en qué asignaturas no se avanzó.
+- En **Horario**, cada celda tiene su asignatura para la Agenda (el texto puede ser libre) y puede alternar entre dos actividades por semanas.
+- En **Programación**, una unidad nueva puede generar sus sesiones a partir de las páginas del libro.
 - Las mejoras se publican en este repositorio y Vercel actualiza la app sola en uno o dos minutos. Tus datos no se tocan.
 
 ## Archivos
