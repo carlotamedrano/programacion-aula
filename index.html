@@ -64,6 +64,7 @@ a{color:var(--pri)}
 #sync.err{color:var(--dng)}
 #syncbar .lnk{font-size:inherit;padding:0}
 .slot>span{min-width:0;flex:1}
+.gsb{font-size:.8rem;padding:0}
 .slot .ses{padding:2px 0;margin:0;font-weight:400}
 .late{border-color:var(--pri);border-width:2px}
 .late .row{flex-wrap:nowrap;align-items:flex-start;justify-content:space-between}
@@ -347,13 +348,16 @@ const SJ=[["","Ninguna (sin contenidos automáticos)"],["mates","Matemàtiques"]
 const SKL={mates:"Matemàtiques",medi:"Coneixement del medi",cat:"Català",cas:"Castellano",oral:"Expressió oral"};
 const guessCell=c=>{const T=((c&&c.t)||'').toUpperCase();return T.indexOf('MATES')>-1?'mates':T.indexOf('MEDI')>-1?'medi':T.indexOf('EXPR.ORAL')>-1?'oral':T.indexOf('ORTOGRAF')>-1?'orto':T.indexOf('CATAL')>-1?(T.charAt(0)==='/'?'catd':'cat'):T.indexOf('CASTELL')>-1?'cas':''};
 const cs=c=>!c||!c.t||c.k?'':(typeof c.s==='string'?c.s:guessCell(c));
-const skc=s=>s==='catd'||s==='orto'?'cat':s;
+const skc=s=>s==='catd'||s==='catg'||s==='orto'?'cat':s;
 const subj=u=>typeof u.sj==='string'?u.sj:/^Matem/.test(u.subject)?'mates':/medi/i.test(u.subject)?'medi':/comunicaci[oó] oral/i.test(u.subject)?'oral':'';
 const mins=h=>{const m=/(\d{1,2})[:.h](\d{2})/.exec(h||'');return m?+m[1]*60+ +m[2]:0};
 const half=k=>(S.hd||{})[k]||'';// 'm': sin clase por la mañana; 't': sin clase por la tarde
 const blocked=(k,i)=>{const h=half(k);if(!h)return false;const am=mins(S.slots[i])<780;return h==='m'?am:!am};
 const skipped=(k,s)=>!!(s&&(S.sk||{})[k]&&S.sk[k].includes(skc(s)));
 const slotsFor=(w,s,k)=>{const a=[];S.slots.forEach((h,i)=>{const c=S.cells[i+'-'+w];if(cs(c)===s&&!c.n&&!c.alt&&!(k&&blocked(k,i)))a.push(i)});return a};
+// Desdoblament de Català: un día concreto puede ser «grup sencer» conmigo o con el profe de inglés (yo sin clase).
+const gsMode=(k,i)=>(S.gs||{})[k+'#'+i]||'';
+const es=(k,i,c)=>{const s=cs(c);if(s!=='catd')return s;const m=gsMode(k,i);return m==='jo'?'catg':m==='angles'?'':s};
 const tick=(attr,on,html)=>`<label class='ses ${on?'done':''}'><input type='checkbox' ${attr} ${on?'checked':''}><span>${html}</span></label>`;
 const eff=(u,x,i,E)=>x.d||E[u.id+':'+i]||'';
 let av='hoy',wo=0,mo=0,dOff=0,sel=iso(new Date());
@@ -381,13 +385,14 @@ function langPlan(){const pool={},out={},t0=T0();
   const pinned=new Set([].concat(...Object.values(byDay)));['cG','cO','sp'].forEach(q=>{pool[q]=pool[q].filter(x=>!pinned.has(x.k))});
   for(let n=0;n<260;n++){const d=addD(new Date(),n),w=wd(d),k=iso(d);if(w>4||(S.off||[]).includes(k)||(S.lt||[]).includes(k)||k>'2027-06-21')continue;
     let gG=0,gS=0;const pd=(byDay[k]||[]).map(q=>Object.assign({},byKey[q],{pin:1})),ty=new Set();
-    S.slots.forEach((h,i)=>{const c=S.cells[i+'-'+w],s=cs(c);if(s&&!c.n&&!c.alt&&!blocked(k,i)&&!skipped(k,s))ty.add(s)});
-    const want=x=>x.k.startsWith('cas-')?['cas']:(x.dict||x.k.endsWith('-4'))?(ty.has('orto')?['orto']:['cat','catd']):(ty.has('cat')?['cat']:['catd']);
-    S.slots.forEach((h,i)=>{const c=S.cells[i+'-'+w],s=cs(c);if(!s||c.n||c.alt||blocked(k,i)||skipped(k,s))return;
+    S.slots.forEach((h,i)=>{const c=S.cells[i+'-'+w],s=es(k,i,c);if(s&&!c.n&&!c.alt&&!blocked(k,i)&&!skipped(k,s))ty.add(s)});
+    const want=x=>x.k.startsWith('cas-')?['cas']:(x.dict||x.k.endsWith('-4'))?(ty.has('orto')?['orto']:['cat','catg','catd']):(ty.has('cat')||ty.has('catg')?['cat','catg']:['catd']);
+    S.slots.forEach((h,i)=>{const c=S.cells[i+'-'+w],s=es(k,i,c);if(!s||c.n||c.alt||blocked(k,i)||skipped(k,s))return;
       const pi=pd.findIndex(x=>!x.used&&want(x).includes(s));if(pi>-1){pd[pi].used=1;out[k+'#'+i]=pd[pi];if(s==='cat')gG=1;if(s==='cas')gS=1;return}
       if(s==='orto'){if(pool.cO.length)out[k+'#'+i]=pool.cO.shift()}
       else if(s==='catd'){if(hs){out[k+'#'+i]=Object.assign({},hs,{h:2});hs=null}else if(pool.cG.length){hs=pool.cG.shift();out[k+'#'+i]=Object.assign({},hs,{h:1})}}
       else if(s==='cat'){if(!gG&&pool.cG.length){gG=1;out[k+'#'+i]=pool.cG.shift()}}
+      else if(s==='catg'){if(pool.cG.length)out[k+'#'+i]=Object.assign({},pool.cG.shift(),{g:1})}
       else if(s==='cas'){if(!gS&&pool.sp.length){gS=1;out[k+'#'+i]=pool.sp.shift()}}})}
   return out}
 function evs(k,E){const r=[];S.units.forEach(u=>u.ses.forEach((x,i)=>{if(eff(u,x,i,E)===k)r.push({u,x,i,s:subj(u)})}));return r}
@@ -398,8 +403,9 @@ function dayHtml(k,E){const d=dt(k),w=wd(d);
   const L=evs(k,E),cnt={},shown=new Set(),lt=(S.lt||[]).includes(k),hd=half(k);
   let h=S.nt&&S.nt[k]?`<div class='card' style='margin-bottom:6px'><b>Nota del día</b><div>${esc(S.nt[k])}</div></div>`:'';
   if(lt||hd)h+=`<p class='muted' style='margin:0 0 6px'>${lt?'Día light: programación flexible.':hd==='m'?'Sin clase por la mañana.':'Sin clase por la tarde.'}</p>`;
-  S.slots.forEach((hr,i)=>{const c=S.cells[i+'-'+w];if(!c||!c.t)return;const s=cs(c);let body='';
+  S.slots.forEach((hr,i)=>{const c=S.cells[i+'-'+w];if(!c||!c.t)return;const s=es(k,i,c),gm=cs(c)==='catd'?gsMode(k,i):null;let body='';
     if(c.k)body=`<span class='muted'>Sin contenidos de aula</span>`;
+    else if(gm==='angles'&&!blocked(k,i))body=`<span class='muted'>Grup sencer con el profe de inglés: no tienes clase</span>`;
     else if(blocked(k,i))body=`<span class='muted'>Sin clase</span>`;
     else if(c.alt)body=esc(c.alt[((Math.floor((dt(k)-dt(c.a0))/6048e5)%2)+2)%2]);
     else if(c.n)body=esc(c.n);
@@ -408,9 +414,10 @@ function dayHtml(k,E){const d=dt(k),w=wd(d);
     else if(s==='mates'||s==='medi'||s==='oral'){const j=cnt[s]=(cnt[s]||0),e=L.filter(q=>q.s===s)[j];cnt[s]++;
       if(e){shown.add(e);body=tick(`data-tg='${e.u.id}:${e.i}'`,e.x.done,`${esc(e.x.t)} <span class='muted'>(${esc(e.u.title)})</span>`)}
       else body=s==='mates'&&w===2?'Resolución de problemas (dosier)':s==='mates'&&w===4?'Cálculo (y divisiones de la unidad 3)':`<span class='muted'>${s==='oral'?'—':'Sin programar'}</span>`}
-    else if(s){const o=LP[k+'#'+i];body=!o?`<span class='muted'>—</span>`:o.h===1?`${esc(o.t)} <span class='muted'>· 1.ª mitad (se marca en la 2.ª)</span>`:tick(`data-dn='${o.k}'`,!!S.done[o.k],esc(o.t)+(o.h===2?` <span class='muted'>· 2.ª mitad</span>`:''))}
+    else if(s){const o=LP[k+'#'+i];body=!o?`<span class='muted'>—</span>`:o.h===1?`${esc(o.t)} <span class='muted'>· 1.ª mitad (se marca en la 2.ª)</span>`:tick(`data-dn='${o.k}'`,!!S.done[o.k],esc(o.t)+(o.h===2?` <span class='muted'>· 2.ª mitad</span>`:o.g?` <span class='muted'>· grup sencer</span>`:''))}
     else body=`<span class='muted'>—</span>`;
-    h+=`<div class='slot ${c.k?'k-'+c.k:c.c?'c'+c.c:''}'><b>${esc(hr)}</b><span><b>${esc(c.t)}</b><br>${body}</span></div>`});
+    const gb=gm!==null&&!c.k&&!blocked(k,i)?`<button class='lnk gsb' type='button' data-gs='${k}#${i}'>${gm==='jo'?'Grup sencer conmigo':gm==='angles'?'Grup sencer: inglés':'Desdoblament'} ▾</button>`:'';
+    h+=`<div class='slot ${c.k||gm==='angles'?'k-'+(c.k||'nl'):c.c?'c'+c.c:''}'><b>${esc(hr)}</b><span><span class='row sp' style='gap:4px 8px'><b>${esc(c.t)}</b>${gb}</span>${body}</span></div>`});
   const ex=L.filter(q=>!shown.has(q)).map(q=>tick(`data-tg='${q.u.id}:${q.i}'`,q.x.done,`${esc(q.x.t)} <span class='muted'>(${esc(q.u.title)})</span>`)).concat(Object.keys(S.ctl||{}).filter(q=>S.ctl[q]===k).map(q=>{const a=q.split('-');return tick(`data-dn='${q}-ctl'`,!!S.done[q+'-ctl'],'Control de '+esc(LNG[a[0]].M[+a[1]][0])+' ('+esc(LNG[a[0]].n)+')')}));
   if(ex.length)h+=`<div class='card' style='margin-top:6px'><b>Otros apuntes</b>${ex.join('')}</div>`;
   return h||`<div class='empty'>No hay clases este día.</div>`}
@@ -481,7 +488,7 @@ function resForm(r){
 }
 
 document.addEventListener("click",e=>{
-  const b=e.target.closest("[data-tab],[data-cell],[data-slot],[data-act],[data-editunit],[data-addses],[data-delses],[data-editres],[data-f],[data-lg],[data-wk],[data-ctl],[data-av],[data-wo],[data-mo],[data-day],[data-off],[data-es],[data-nt],[data-genp],[data-eday],[data-dd],[data-resch],[data-bk],[data-aiopen],[data-golg],[data-lpin]");
+  const b=e.target.closest("[data-tab],[data-cell],[data-slot],[data-act],[data-editunit],[data-addses],[data-delses],[data-editres],[data-f],[data-lg],[data-wk],[data-ctl],[data-av],[data-wo],[data-mo],[data-day],[data-off],[data-es],[data-nt],[data-genp],[data-eday],[data-dd],[data-resch],[data-bk],[data-aiopen],[data-golg],[data-lpin],[data-gs]");
   if(!b)return;
   const D=b.dataset;
   if(D.tab){tab=D.tab;render();window.scrollTo(0,0)}
@@ -516,6 +523,7 @@ document.addEventListener("click",e=>{
   else if(D.resch){const[id,i]=D.resch.split(":"),u=S.units.find(x=>x.id===id);if(u){const x=u.ses[+i];if(['mates','medi','oral'].includes(subj(u))){delete x.d;save();render()}else editSes(D.resch)}}
   else if(D.bk){backupsUI()}
   else if(D.aiopen){aiUI()}
+  else if(D.gs){const key=D.gs,[k,i]=key.split('#');S.gs=S.gs||{};modal(`${Fl(k)} · ${S.slots[+i]}`,[{k:'m',label:'Esta hora de Català',type:'select',options:[['','Desdoblament (medio grupo)'],['jo','Grup sencer conmigo'],['angles','Grup sencer con el profe de inglés (no tengo clase)']],value:S.gs[key]||'',hint:'Solo cambia este día. Con el grupo entero se trabaja un contenido completo; si el grupo está con el profe de inglés, esta hora no recibe contenidos y lo pendiente pasa a la siguiente.'}],d=>{if(d.m)S.gs[key]=d.m;else delete S.gs[key]})}
   else if(D.lpin){e.preventDefault();const k=D.lpin;S.lpin=S.lpin||{};modal('Día para este contenido',[{type:'note',label:'Si pones un día, la Agenda lo coloca en la hora de lengua de ese día y el resto se reparte a su alrededor. Déjalo vacío para que se reparta solo.'},{k:'d',label:'Día',type:'date',value:S.lpin[k]||''}],d=>{if(d.d){if(wd(dt(d.d))>4){genErr('Elige un día de lunes a viernes.');return false}S.lpin[k]=d.d}else delete S.lpin[k]})}
   else if(D.editunit){const u=S.units.find(x=>x.id===D.editunit);modal("Editar unidad",unitForm(u),d=>{Object.assign(u,d)},()=>{S.units=S.units.filter(x=>x!==u)})}
   else if(D.addses){const u=S.units.find(x=>x.id===D.addses);modal("Nueva sesión",[{k:"t",label:"Qué vas a trabajar",type:"textarea",value:"",req:1},{k:"d",label:"Fecha (opcional)",type:"date",value:""},{k:"p",label:"Qué hay que imprimir (opcional)",value:"",ph:"Ej. ficha de repaso"}],d=>{if(d.t){const x={t:d.t,done:false};if(d.d)x.d=d.d;if(d.p)x.p=d.p;u.ses.push(x)}})}
@@ -614,6 +622,9 @@ function aiPrep(a){const no=m=>({err:m});if(!a||typeof a!=='object')return no('v
   case 'lengua':{let it=ortoSeq().find(x=>x.k===a.clave)||null;['cat','cas'].forEach(g=>LNG[g].M.forEach((m,mi)=>m[1].forEach((w,wi)=>items(g,mi,wi).forEach(x=>{if(x.k===a.clave)it=x}))));const hf=typeof a.fecha==='string';if(!it||(typeof a.hecha!=='boolean'&&!hf))return no('lengua');if(hf&&a.fecha&&!isD(a.fecha))return no('fecha');
     const dd=[];if(typeof a.hecha==='boolean')dd.push(a.hecha?'hecho':'pendiente');if(hf)dd.push(a.fecha?'se trabajará el '+fl(a.fecha):'sin día fijo');
     return {d:`${it.t}: ${dd.join(', ')}`,run:()=>{if(a.hecha===true)S.done[it.k]=S.done[it.k]||T0();else if(a.hecha===false)delete S.done[it.k];if(hf){S.lpin=S.lpin||{};if(a.fecha)S.lpin[it.k]=a.fecha;else delete S.lpin[it.k]}}}}
+  case 'grup_sencer':{const map={normal:'',conmigo:'jo',ingles:'angles'};if(!isD(a.fecha)||!(a.modo in map))return no('grup sencer');const w=wd(dt(a.fecha));
+    const idx=S.slots.findIndex((h,i)=>h===a.hora&&cs(S.cells[i+'-'+w])==='catd');if(idx<0)return no('hora');const key=a.fecha+'#'+idx;
+    return {d:`${Fl(a.fecha)} ${a.hora}: ${a.modo==='conmigo'?'grup sencer conmigo':a.modo==='ingles'?'grup sencer con el profe de inglés (sin clase)':'desdoblament normal'}`,run:()=>{S.gs=S.gs||{};if(map[a.modo])S.gs[key]=map[a.modo];else delete S.gs[key]}}}
   case 'control':{const Lg=LNG[a.lengua],m=Lg&&Number.isInteger(a.mes)&&Lg.M[a.mes];if(!m)return no('control');if(a.fecha&&!isD(a.fecha))return no('fecha');const k=a.lengua+'-'+a.mes;
     return {d:`Control de ${m[0]} (${Lg.n}): ${a.fecha?fl(a.fecha):'sin fecha'}`,run:()=>{S.ctl=S.ctl||{};if(a.fecha)S.ctl[k]=a.fecha;else delete S.ctl[k]}}}}
   return no('desconocida')}

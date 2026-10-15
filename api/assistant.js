@@ -29,6 +29,7 @@ Acciones posibles (usa solo estas, con estos campos exactos):
 - {"tipo":"borrar_sesion","unidad":"id","indice":n}
 - {"tipo":"nueva_unidad","titulo":"...","asignatura":"texto","agenda":"mates"|"medi"|"oral"|"","desde":n opcional,"hasta":n opcional,"saltar":[n] opcional,"por":1|2|3 opcional,"extras":["repaso","ficha","control"] opcional}
 - {"tipo":"lengua","clave":"clave exacta del contexto","hecha":true|false opcional,"fecha":"AAAA-MM-DD" opcional}  (fecha = día en que se trabajará ese contenido; "" para quitarla)
+- {"tipo":"grup_sencer","fecha":"AAAA-MM-DD","hora":"hora exacta de una franja catd (desdoblament) de ese día","modo":"conmigo"|"ingles"|"normal"}  (conmigo = ese día tengo el grupo entero; ingles = el grupo entero está con el profe de inglés y yo no tengo clase)
 - {"tipo":"control","lengua":"cat"|"cas","mes":índice del mes,"fecha":"AAAA-MM-DD" o "" para quitarla}
 
 Reglas:
