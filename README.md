@@ -42,6 +42,12 @@ Los datos se guardan en un almacén privado de Vercel y se sincronizan entre dis
 - El **calendario del cole** (días sin clase, light, medias jornadas y notas del día) es común: lo ven y lo pueden editar todas las cuentas.
 - Cada compañero puede cambiar su contraseña con **Cambiar contraseña**, y **Salir** cierra la sesión en ese dispositivo.
 
+## Importar horario y programación
+
+- **Horario desde Excel:** en Horario, «Descargar plantilla de Excel» (`plantilla-horario.xlsx`), rellenarla y «Importar horario de Excel». También acepta `.csv`.
+- **Programación con ChatGPT, Claude o Gemini:** en Programación, «Importar programación» → «Copiar instrucciones». Se pegan en la IA que use cada uno, junto con el PDF del libro o la foto del horario, y la respuesta se pega en la app. Antes de aplicar se muestra un resumen, y después se puede deshacer. No gasta el crédito de IA de la app.
+- Cada cuenta puede tener sus propias asignaturas (Anglès, Música…); las sesiones aparecen en la Agenda en las horas que tengan esa asignatura.
+
 ## Avaluació
 
 - Pestaña **Avaluació**: lista de la clase, notas por dimensiones, ficha de cada alumno con el comentario general y por áreas, niveles para copiar en Alexia, y banco de frases por curso y trimestre.

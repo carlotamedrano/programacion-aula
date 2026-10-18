@@ -276,7 +276,8 @@ function vHorario(){
   const t=todayIdx();
   let h=`<h1>Horario</h1><p class="sub">Toca una celda para cambiar la clase, la asignatura que recibe sesiones en la Agenda, una nota fija o una alternancia semanal. Toca la hora para cambiarla. Las franjas rayadas (horas libres, CD, patio y reuniones) no llevan contenidos de aula.</p><div class="tbl"><table><tr><th></th>${DAYS.map((d,i)=>`<th class="${i===t?"today":""}">${d}</th>`).join("")}</tr>`;
   S.slots.forEach((s,i)=>{h+=`<tr><th><button class="lnk" data-slot="${i}">${esc(s)}</button></th>`+DAYS.map((d,j)=>{const c=S.cells[i+"-"+j]||{};return `<td><button class="${c.k?"k-"+c.k:c.c?"c"+c.c:""}" data-cell="${i}-${j}" aria-label="${esc(s)} ${d}">${esc(c.t)}</button></td>`}).join("")+"</tr>"});
-  return h+`</table></div><div class="row" style="margin-top:12px"><button class="btn" data-act="addslot">Añadir franja horaria</button></div>`;
+  return h+`</table></div><div class="row" style="margin-top:12px"><button class="btn" data-act="addslot">Añadir franja horaria</button><button class="btn" data-act="xlsimp">Importar horario de Excel</button><a class="lnk" href="/plantilla-horario.xlsx" download>Descargar plantilla de Excel</a><button class="lnk" type="button" data-act="import">Importar con ChatGPT o similar</button></div>
+  <input type="file" id="xlsfile" accept=".xlsx,.csv" hidden>`;
 }
 
 function unitCard(u){const n=u.ses.length,d=u.ses.filter(x=>x.done).length,p=n?Math.round(d/n*100):0;
@@ -303,11 +304,12 @@ function langSection(g){const L=LNG[g],info=langInfo(g),cur=langCur(info),late=i
   h+=`<details class='card fold' data-m='${key}'${openM[key]?' open':''}><summary><b>Otros meses</b> <span class='muted'>(temporalización completa)</span></summary><div class='foldin'>`+others.map(o=>{const k2=g+o.mi;return `<details class='card' data-m='${k2}'${openM[k2]?' open':''}><summary><b>${esc(o.m[0])}</b> <span class='muted'>${o.d} de ${o.n}</span></summary>${monthBody(g,o)}</details>`}).join('')+`</div></details>`;
   return {h,pct:cur.n?Math.round(cur.d/cur.n*100):100,what:cur.m[0]}}
 const subjHead=(label,pct,what)=>`<h2 class='subj'><span>${esc(label)}</span>${pct==null?'':`<span class='mini' role='progressbar' aria-label='${esc(what)}: ${pct}% completado' aria-valuenow='${pct}' aria-valuemin='0' aria-valuemax='100'><i style='width:${pct}%'></i></span><span class='pct'>${pct}%</span>`}</h2>`;
-const PG=[["mates","Matemàtiques"],["medi","Coneixement del medi"],["cat","Català"],["cas","Castellano"],["oral","Expressió oral"],["","Otras unidades"]];
+const PG0=[["mates","Matemàtiques"],["medi","Coneixement del medi"],["cat","Català"],["cas","Castellano"],["oral","Expressió oral"]];
+const PGlist=()=>{const L=CF('lng')?PG0.slice():[],seen=new Set(L.map(x=>x[0]));S.units.forEach(u=>{const k=subj(u)||"";if(k&&!seen.has(k)){seen.add(k);L.push([k,subjName(k)])}});L.push(["","Otras unidades"]);return L};
 function vProg(){
-  let h=`<h1>Programación</h1><p class="sub">Lo que estáis trabajando ahora en cada asignatura, con su porcentaje hecho. Lo demás está en los desplegables.</p><button class="pri" data-act="addunit">Nueva unidad</button>`;
-  if(!S.units.length)h+=`<div class="empty" style="margin-top:14px">Todavía no hay unidades. Crea la primera con sus fechas y sesiones.</div>`;
-  PG.forEach(([k,label])=>{
+  let h=`<h1>Programación</h1><p class="sub">Lo que estáis trabajando ahora en cada asignatura, con su porcentaje hecho. Lo demás está en los desplegables.</p><div class="row"><button class="pri" data-act="addunit">Nueva unidad</button><button class="btn" data-act="import">Importar programación</button></div>`;
+  if(!S.units.length)h+=`<div class="empty" style="margin-top:14px">Todavía no hay unidades. Créalas una a una con «Nueva unidad» o impórtalas de golpe con «Importar programación», usando ChatGPT, Claude o Gemini con el PDF de tu libro.</div>`;
+  PGlist().forEach(([k,label])=>{
     if(k==="cat"||k==="cas"){if(!CF('lng'))return;const r=langSection(k);h+=subjHead(LNG[k].n,r.pct,r.what)+r.h;return}
     const us=S.units.filter(u=>(subj(u)||"")===k);if(!us.length)return;
     const done=us.filter(u=>u.ses.length&&u.ses.every(x=>x.done)),pend=us.filter(u=>u.ses.some(x=>!x.done)),empty=us.filter(u=>!u.ses.length);
@@ -376,6 +378,13 @@ const T0=()=>iso(new Date());
 // Asignatura de cada celda del horario (decide qué contenidos recibe en la Agenda).
 const SJ=[["","Ninguna (sin contenidos automáticos)"],["mates","Matemàtiques"],["medi","Coneixement del medi"],["cat","Català (grupo entero)"],["catd","Català desdoblament (medio grupo)"],["orto","Taller d'ortografia (Català)"],["oral","Taller d'expressió oral"],["cas","Castellano"]];
 const SKL={mates:"Matemàtiques",medi:"Coneixement del medi",cat:"Català",cas:"Castellano",oral:"Expressió oral"};
+// Asignaturas habituales de Primària; cada cuenta puede añadir otras (S.subs) al importar.
+const GEN=[["mates","Matemàtiques"],["medi","Coneixement del medi"],["cat","Llengua catalana"],["cas","Llengua castellana"],["angl","Anglès"],["mus","Música"],["plas","Plàstica"],["ef","Educació física"],["val","Valors"],["tut","Tutoria"],["oral","Expressió oral"]];
+const LANGK=['cat','catd','orto','cas','catg'];
+const subjOpts=()=>{const out=[SJ[0]],seen=new Set();[].concat(CF('lng')?SJ.slice(1):[],GEN,(S.subs||[]).map(x=>[x.k,x.n])).forEach(o=>{if(!seen.has(o[0])){seen.add(o[0]);out.push(o)}});return out};
+const unitSubjOpts=()=>[["","Ninguna (solo en Programación)"]].concat(subjOpts().slice(1).filter(o=>!(CF('lng')&&LANGK.includes(o[0]))));
+const subjName=k=>(SKL[k]&&CF('lng')?SKL[k]:null)||(subjOpts().find(o=>o[0]===k)||[])[1]||k;
+const isUnitSubj=s=>!!s&&!(CF('lng')&&LANGK.includes(s));
 const guessCell=c=>{const T=((c&&c.t)||'').toUpperCase();return T.indexOf('MATES')>-1?'mates':T.indexOf('MEDI')>-1?'medi':T.indexOf('EXPR.ORAL')>-1?'oral':T.indexOf('ORTOGRAF')>-1?'orto':T.indexOf('CATAL')>-1?(T.charAt(0)==='/'?'catd':'cat'):T.indexOf('CASTELL')>-1?'cas':''};
 const cs=c=>!c||!c.t||c.k?'':(typeof c.s==='string'?c.s:guessCell(c));
 const skc=s=>s==='catd'||s==='catg'||s==='orto'?'cat':s;
@@ -394,13 +403,13 @@ let av='hoy',wo=0,mo=0,dOff=0,sel=iso(new Date());
 const OM={set:9,oct:10,nov:11,des:12,gen:1,feb:2,'mar':3,abr:4,mai:5,jun:6};
 const lectivo=k=>{const w=wd(dt(k));return w<5&&!(C.off||[]).includes(k)&&!(C.lt||[]).includes(k)&&k<='2027-06-21'};
 function oralDay(from,ym,used){for(let n=0;n<260;n++){const d=addD(new Date(),n),k=iso(d);if(k<from||used[k]||!lectivo(k)||(ym&&k.slice(0,7)!==ym))continue;if(skipped(k,'oral'))continue;if(slotsFor(wd(d),'oral',k).length)return k}return ''}
-function sched(){const E={},P={mates:[],medi:[]},D={},O=[],used={},t0=T0();
+function sched(){const E={},P={},D={},O=[],used={},t0=T0();S.units.forEach(u=>{const s=subj(u);if(isUnitSubj(s)&&s!=='oral')P[s]=P[s]||[]});
   const T=new Date(),cy=T.getMonth()>=8?T.getFullYear():T.getFullYear()-1;
   S.units.forEach(u=>{const s=subj(u);u.ses.forEach((x,i)=>{if(s==='oral'){if(x.d)used[x.d]=1;else if(!x.done||x.f===t0){const m=/^(\w{3})\b/.exec(x.t),mn=m&&OM[m[1].toLowerCase()];if(mn){const ym=(mn>=9?cy:cy+1)+'-'+String(mn).padStart(2,'0');O.push({id:u.id+':'+i,ym})}}return}
     if(x.d&&s)D[x.d+s]=(D[x.d+s]||0)+1;else if(!x.d&&P[s]&&(!x.done||x.f===t0))P[s].push(u.id+':'+i)})});
   O.forEach(o=>{const k=oralDay('',o.ym,used)||oralDay(o.ym+'-01','',used);if(k){E[o.id]=k;used[k]=1}});
   for(let n=0;n<260;n++){const d=addD(new Date(),n),w=wd(d),k=iso(d);if(w>4||(C.off||[]).includes(k)||(C.lt||[]).includes(k)||k>'2027-06-21')continue;
-    ['mates','medi'].forEach(s=>{if(s==='mates'&&CF('mrule')&&(w===2||w===4))return;if(skipped(k,s))return;const m=slotsFor(w,s,k).length;for(let j=D[k+s]||0;j<m&&P[s].length;j++)E[P[s].shift()]=k})}
+    Object.keys(P).forEach(s=>{if(s==='mates'&&CF('mrule')&&(w===2||w===4))return;if(skipped(k,s))return;const m=slotsFor(w,s,k).length;for(let j=D[k+s]||0;j<m&&P[s].length;j++)E[P[s].shift()]=k})}
   LP=langPlan();return E}
 let LP={};
 // Ortografía de Català: a partir de la Fitxa 4 se alterna un dictado antes de cada ficha (Dictat 1, Fitxa 4, Dictat 2, Fitxa 5…).
@@ -441,9 +450,9 @@ function dayHtml(k,E){const d=dt(k),w=wd(d);
     else if(c.n)body=esc(c.n);
     else if(lt&&s)body=`<span class='muted'>Programación flexible</span>`;
     else if(skipped(k,s))body=`<span class='muted'>No se avanzó</span>`;
-    else if(s==='mates'||s==='medi'||s==='oral'){const j=cnt[s]=(cnt[s]||0),e=L.filter(q=>q.s===s)[j];cnt[s]++;
+    else if(isUnitSubj(s)){const j=cnt[s]=(cnt[s]||0),e=L.filter(q=>q.s===s)[j];cnt[s]++;
       if(e){shown.add(e);body=tick(`data-tg='${e.u.id}:${e.i}'`,e.x.done,`${esc(e.x.t)} <span class='muted'>(${esc(e.u.title)})</span>`)}
-      else body=CF('mrule')&&s==='mates'&&w===2?'Resolución de problemas (dosier)':CF('mrule')&&s==='mates'&&w===4?'Cálculo (y divisiones de la unidad 3)':`<span class='muted'>${s==='oral'?'—':'Sin programar'}</span>`}
+      else body=CF('mrule')&&s==='mates'&&w===2?'Resolución de problemas (dosier)':CF('mrule')&&s==='mates'&&w===4?'Cálculo (y divisiones de la unidad 3)':`<span class='muted'>${s==='oral'||!S.units.some(u=>subj(u)===s)?'—':'Sin programar'}</span>`}
     else if(s){const o=LP[k+'#'+i];body=!o?`<span class='muted'>—</span>`:o.h===1?`${esc(o.t)} <span class='muted'>· 1.ª mitad (se marca en la 2.ª)</span>`:tick(`data-dn='${o.k}'`,!!S.done[o.k],esc(o.t)+(o.h===2?` <span class='muted'>· 2.ª mitad</span>`:o.g?` <span class='muted'>· grup sencer</span>`:''))}
     else body=`<span class='muted'>—</span>`;
     const gb=gm!==null&&!c.k&&!blocked(k,i)?`<button class='lnk gsb' type='button' data-gs='${k}#${i}'>${gm==='jo'?'Grup sencer conmigo':gm==='angles'?'Grup sencer: inglés':'Desdoblament'} ▾</button>`:'';
@@ -458,11 +467,11 @@ function overdue(){const t0=T0(),r=[];
 function lateHtml(){const r=overdue();if(!r.length)return '';
   return `<div class='card late'><b>Atrasado (${r.length})</b><p class='hint'>Tenían fecha y no se han marcado como hechas. Márcalas si ya las hiciste, o pulsa Reprogramar para colocarlas en el siguiente hueco libre.</p>${r.map(o=>`<div class='row'>${o.h}${o.b}</div>`).join('')}</div>`}
 const dayTypes=[["","Día de clase normal"],["off","Sin clase todo el día"],["m","Sin clase por la mañana"],["t","Sin clase por la tarde"],["lt","Día light (programación flexible)"]];
-function editDay(k){const w=wd(dt(k)),subs=[];S.slots.forEach((h,i)=>{const s=skc(cs(S.cells[i+'-'+w]));if(SKL[s]&&!subs.includes(s))subs.push(s)});
+function editDay(k){const w=wd(dt(k)),subs=[];S.slots.forEach((h,i)=>{const s=skc(cs(S.cells[i+'-'+w]));if(s&&!subs.includes(s))subs.push(s)});
   const cur=(C.off||[]).includes(k)?'off':(C.lt||[]).includes(k)?'lt':half(k);
   modal(fl(k).replace(/^./,c=>c.toUpperCase()),[{k:'ty',label:'Tipo de día',type:'select',options:dayTypes,value:cur,hint:'Los días sin clase o light no reciben sesiones: las pendientes pasan al siguiente día de clase.'},
     {k:'n',label:'Nota del día (opcional)',type:'textarea',value:(C.nt||{})[k]||'',ph:'Ej. excursión, festivo, salida al teatro'},
-    {k:'sk',label:'No se avanzó en…',type:'checks',options:subs.map(s=>[s,SKL[s]]),value:(S.sk||{})[k]||[],hint:'Ese día se muestra como “No se avanzó” y lo pendiente pasa al siguiente día de clase.'}],
+    {k:'sk',label:'No se avanzó en…',type:'checks',options:subs.map(s=>[s,subjName(s)]),value:(S.sk||{})[k]||[],hint:'Ese día se muestra como “No se avanzó” y lo pendiente pasa al siguiente día de clase.'}],
   d=>{C.off=(C.off||[]).filter(x=>x!==k);C.lt=(C.lt||[]).filter(x=>x!==k);C.hd=C.hd||{};delete C.hd[k];
     if(d.ty==='off')C.off.push(k);else if(d.ty==='lt')C.lt.push(k);else if(d.ty==='m'||d.ty==='t')C.hd[k]=d.ty;
     C.nt=C.nt||{};if(d.n)C.nt[k]=d.n;else delete C.nt[k];
@@ -687,6 +696,111 @@ document.addEventListener('paste',e=>{if(tab!=="ev")return;const t=e.target;if(!
   else if(t.dataset.nm!==undefined){e.preventDefault();const i0=al.findIndex(a=>a.n===t.dataset.nm);NM[E.curs]=NM[E.curs]||{};tx.trim().split(/\r?\n/).forEach((s,d)=>{const a=al[i0+d];if(a){const v=s.split('\t')[0].trim();if(v)NM[E.curs][a.n]=v}});lsSet(NMK(),JSON.stringify(NM));render()}},true);
 return {view,init}})();
 
+// ===== Importar programación (de ChatGPT, Claude o Gemini) y horario de Excel =====
+const PROMPT=`Eres un asistente que prepara la programación de aula de un maestro o maestra de Primaria para importarla en una app.
+Te adjunto en este mensaje (o en los siguientes) algunos de estos archivos: mi horario (foto, PDF o Excel) y los libros del profesorado o los índices de mis asignaturas.
+
+Devuélveme SOLO un bloque de código JSON, sin explicaciones antes ni después, con esta forma:
+{"tipo":"programacion-aula","horario":{...},"unidades":[...],"recursos":[...]}
+Incluye "horario" solo si te he pasado mi horario, y "unidades" solo si te he pasado libros o índices.
+
+HORARIO
+"horario":{"franjas":["9:00","10:00","11:00"],"celdas":[{"dia":"lunes","hora":"9:00","clase":"Matemàtiques","asignatura":"mates","tipo":"clase"}]}
+- "franjas": hora de inicio de cada franja, en orden. "dia": lunes, martes, miércoles, jueves o viernes. "hora": una de las "franjas".
+- "tipo": "clase", "libre" (sin alumnos, coordinación…), "patio" o "reunion".
+- "asignatura" (solo en las clases): mates, medi, cat, cas, angl, mus, plas, ef, val, tut u oral. Si es otra, inventa una clave corta en minúsculas y añade "asignatura_nombre".
+
+UNIDADES (una por cada unidad o tema, en el orden del libro)
+{"titulo":"Unitat 1. Els nombres naturals","asignatura":"mates","asignatura_nombre":"Matemàtiques 5è","paginas":{"desde":10,"hasta":31,"saltar":[27],"por":2},"repaso":true,"ficha":true,"control":true,"notas":"Taller de problemes en la pág. 27"}
+- "paginas": primera y última página de la unidad según el índice. En "saltar", las páginas que te diga que no se trabajan. "por": páginas por sesión (2 si no te digo nada).
+- Si el libro no va por páginas, en lugar de "paginas" usa "sesiones": ["sesión 1…","sesión 2…"].
+- "repaso", "ficha" y "control": true si al final de cada unidad hay repaso, ficha de repaso y control.
+
+RECURSOS (opcional)
+{"titulo":"Avaluació 360º Matemàtiques 5è","tipo":"Material","asignatura":"Matemàtiques 5è","nota":"Control de la unidad 1 en la pág. 18"}
+- "tipo": Libro, Material, Digital o Enlace.
+
+Reglas: no inventes unidades ni páginas que no aparezcan en los archivos; si algo no se lee bien, déjalo fuera. Si un libro es muy largo, céntrate en el índice.`;
+const DIAS={lunes:0,martes:1,miercoles:2,miércoles:2,jueves:3,viernes:4,dilluns:0,dimarts:1,dimecres:2,dijous:3,divendres:4};
+const KC={clase:"",libre:"nl",patio:"otro",reunion:"otro",reunión:"otro"};
+const SCOL={mates:"1",cat:"2",cas:"3",medi:"4"};
+const normH=h=>{const m=/(\d{1,2})[:.h](\d{2})/.exec(String(h||""));return m?(+m[1])+":"+m[2]:""};
+const keyOk=k=>typeof k==="string"&&/^[a-z][a-z0-9-]{0,14}$/.test(k);
+function parseImport(txt){let o;try{const a=txt.indexOf("{"),b=txt.lastIndexOf("}");o=JSON.parse(txt.slice(a,b+1))}catch(e){return {err:"No he encontrado un bloque de datos válido. Copia la respuesta entera de la IA, incluido el bloque de código."}}
+  const out={hor:null,units:[],res:[],subs:[],skipped:0};
+  const addSub=(k,n)=>{if(keyOk(k)&&!subjOpts().some(o=>o[0]===k)&&!out.subs.some(x=>x.k===k))out.subs.push({k,n:String(n||k).slice(0,40)})};
+  const h=o.horario;
+  if(h&&Array.isArray(h.franjas)&&Array.isArray(h.celdas)){const fr=[...new Set(h.franjas.map(normH).filter(Boolean))].sort((a,b)=>mins(a)-mins(b)),cells={};
+    h.celdas.forEach(c=>{const d=DIAS[String(c.dia||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"")]??DIAS[String(c.dia||"").toLowerCase()],i=fr.indexOf(normH(c.hora));if(d==null||i<0){out.skipped++;return}
+      const kd=KC[String(c.tipo||"clase").toLowerCase()]??"",sj=kd?"":(keyOk(c.asignatura)?c.asignatura:"");if(sj)addSub(sj,c.asignatura_nombre);
+      cells[i+"-"+d]={t:String(c.clase||subjName(sj)||"").slice(0,40)||"—",c:SCOL[sj]||"",k:kd,s:sj}});
+    if(fr.length&&Object.keys(cells).length)out.hor={slots:fr,cells}}
+  (Array.isArray(o.unidades)?o.unidades:[]).forEach(u=>{const t=String(u&&u.titulo||"").trim().slice(0,120);if(!t){out.skipped++;return}
+    const sj=keyOk(u.asignatura)?u.asignatura:"";if(sj)addSub(sj,u.asignatura_nombre);
+    const ends=[u.repaso&&"rep",u.ficha&&"fic",u.control&&"ctl"].filter(Boolean);let ses=[],a=0,b=0;
+    if(u.paginas&&typeof u.paginas==="object"){const g=genSessions({g_a:String(u.paginas.desde||""),g_b:String(u.paginas.hasta||""),g_skip:(Array.isArray(u.paginas.saltar)?u.paginas.saltar:[]).join(","),g_n:String(u.paginas.por||2),g_end:ends});if(g.err){out.skipped++;return}ses=g.ses;a=g.a;b=g.b}
+    else{ses=(Array.isArray(u.sesiones)?u.sesiones:[]).map(x=>String(x).trim()).filter(Boolean).slice(0,80).map(x=>({t:x.slice(0,200),done:false}));const g=genSessions({g_a:"",g_b:"",g_skip:"",g_n:"2",g_end:ends});ses=ses.concat(g.ses)}
+    out.units.push({id:uid(),title:t,subject:String(u.asignatura_nombre||subjName(sj)||"").slice(0,60),sj,start:"",end:"",notes:[a?`Libro págs. ${a}–${b}.`:"",String(u.notas||"").slice(0,300)].filter(Boolean).join(" "),ses})});
+  (Array.isArray(o.recursos)?o.recursos:[]).forEach(r=>{const t=String(r&&r.titulo||"").trim();if(!t)return;out.res.push({id:uid(),title:t.slice(0,120),tipo:TIPOS.includes(r.tipo)?r.tipo:"Material",subject:String(r.asignatura||"").slice(0,60),note:String(r.nota||"").slice(0,500),url:""})});
+  if(!out.hor&&!out.units.length&&!out.res.length)return {err:"El bloque no trae horario, unidades ni recursos que se puedan importar."};
+  return out}
+function importUI(pre){const m=$("#modal");
+  m.innerHTML=`<div class="sheet"><h3>Importar programación</h3>
+  <p class="hint"><b>1.</b> Copia estas instrucciones. <b>2.</b> Ábrelas en ChatGPT, Claude o Gemini, adjunta el PDF de tu libro (o la foto de tu horario) y envíalas. <b>3.</b> Copia la respuesta entera y pégala aquí debajo. Antes de aplicar nada verás qué se va a añadir.</p>
+  <div class="row"><button class="pri" type="button" id="imcopy">Copiar instrucciones</button><button class="lnk" type="button" id="imshow">Ver instrucciones</button></div>
+  <pre id="imprompt" hidden style="white-space:pre-wrap;font-size:.8rem;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px;max-height:220px;overflow:auto">${esc(PROMPT)}</pre>
+  <label for="imtxt">Respuesta de la IA</label><textarea id="imtxt" rows="6" placeholder="Pega aquí la respuesta (empieza por { o por \`\`\`json)"></textarea>
+  <div class="row"><button class="btn" type="button" id="imcheck">Revisar</button><button class="btn" type="button" id="imclose">Cerrar</button></div><div id="imout" aria-live="polite"></div></div>`;
+  m.classList.add("on");const close=()=>{m.classList.remove("on");m.innerHTML=""};$("#imclose").onclick=close;
+  $("#imcopy").onclick=async e=>{const b=e.target;try{await navigator.clipboard.writeText(PROMPT);b.textContent="Copiadas"}catch(x){$("#imprompt").hidden=false;const r=document.createRange();r.selectNodeContents($("#imprompt"));const sl=getSelection();sl.removeAllRanges();sl.addRange(r);b.textContent="Selecciónalas y cópialas"}setTimeout(()=>b.textContent="Copiar instrucciones",2000)};
+  $("#imshow").onclick=()=>{$("#imprompt").hidden=!$("#imprompt").hidden};
+  const show=r=>{const out=$("#imout");if(r.err){out.innerHTML=`<p class="hint" style="color:var(--dng)">${esc(r.err)}</p>`;return}
+    const bySub={};r.units.forEach(u=>{const k=u.subject||"Sin asignatura";bySub[k]=bySub[k]||{n:0,s:0};bySub[k].n++;bySub[k].s+=u.ses.length});
+    const nCls=r.hor?Object.values(r.hor.cells).filter(c=>!c.k).length:0;
+    out.innerHTML=`<div class="card" style="margin-top:12px"><b>Esto es lo que se va a añadir</b>
+      ${r.hor?`<label class="ses"><input type="checkbox" id="im_h" checked><span><b>Horario</b>: ${r.hor.slots.length} franjas y ${nCls} clases. <span class="muted">Sustituye tu horario actual.</span></span></label>`:""}
+      ${r.units.length?`<label class="ses"><input type="checkbox" id="im_u" checked><span><b>Unidades</b>: ${Object.entries(bySub).map(([k,v])=>`${esc(k)}: ${v.n} unidad${v.n>1?'es':''} y ${v.s} sesi${v.s===1?'ón':'ones'}`).join(" · ")}. <span class="muted">Se añaden a las que ya tienes.</span></span></label>
+        <details style="margin:4px 0 0 30px"><summary class="muted">Ver unidades</summary>${r.units.map(u=>`<div class="muted">· ${esc(u.title)} (${u.ses.length} sesiones)</div>`).join("")}</details>`:""}
+      ${r.res.length?`<label class="ses"><input type="checkbox" id="im_r" checked><span><b>Recursos</b>: ${r.res.length}</span></label>`:""}
+      ${r.subs.length?`<p class="hint">Asignaturas nuevas: ${r.subs.map(x=>esc(x.n)).join(", ")}.</p>`:""}
+      ${r.skipped?`<p class="hint">${r.skipped} elemento${r.skipped>1?"s":""} no se ha${r.skipped>1?"n":""} podido leer y se descarta${r.skipped>1?"n":""}.</p>`:""}
+      <div class="row"><button class="pri" type="button" id="imapply">Aplicar</button></div></div>`;
+    $("#imapply").onclick=()=>{const before=JSON.stringify(S),H=$("#im_h"),U=$("#im_u"),R=$("#im_r");
+      if(r.subs.length)S.subs=(S.subs||[]).concat(r.subs);
+      if(H&&H.checked){S.slots=r.hor.slots;S.cells=r.hor.cells}
+      if(U&&U.checked)S.units=S.units.concat(r.units);
+      if(R&&R.checked)S.res=S.res.concat(r.res);
+      save();render();out.innerHTML=`<div class="card" style="margin-top:12px"><b>Importado.</b> Revisa el Horario y la Programación; puedes editar cualquier cosa.<div class="row" style="margin-top:8px"><button class="btn" type="button" id="imundo">Deshacer</button></div></div>`;
+      $("#imundo").onclick=()=>{S=JSON.parse(before);save();render();out.innerHTML=`<p class="hint">Importación deshecha.</p>`}}};
+  $("#imcheck").onclick=()=>show(parseImport($("#imtxt").value));
+  if(pre)show(pre)}
+// Excel (.xlsx) o CSV con el horario: primera columna las horas, siguientes columnas lunes a viernes.
+async function inflateRaw(u8){const ds=new DecompressionStream("deflate-raw");const w=ds.writable.getWriter();w.write(u8);w.close();return new Uint8Array(await new Response(ds.readable).arrayBuffer())}
+async function unzip(buf){const d=new DataView(buf),u8=new Uint8Array(buf),files={};let e=u8.length-22;while(e>=0&&d.getUint32(e,true)!==0x06054b50)e--;if(e<0)throw new Error("zip");
+  const n=d.getUint16(e+10,true);let p=d.getUint32(e+16,true);const td=new TextDecoder();
+  for(let i=0;i<n;i++){const meth=d.getUint16(p+10,true),cs=d.getUint32(p+20,true),nl=d.getUint16(p+28,true),xl=d.getUint16(p+30,true),cl=d.getUint16(p+32,true),off=d.getUint32(p+42,true),name=td.decode(u8.subarray(p+46,p+46+nl));
+    files[name]={meth,cs,off};p+=46+nl+xl+cl}
+  const read=async name=>{const f=files[name];if(!f)return null;const ln=d.getUint16(f.off+26,true),lx=d.getUint16(f.off+28,true),st=f.off+30+ln+lx,raw=u8.subarray(st,st+f.cs);return td.decode(f.meth===8?await inflateRaw(raw):raw)};
+  return {read,names:Object.keys(files)}}
+const colIdx=r=>{const m=/^([A-Z]+)/.exec(r);let n=0;for(const ch of m[1])n=n*26+ch.charCodeAt(0)-64;return n-1};
+async function readXlsx(buf){const z=await unzip(buf),P=new DOMParser();const ss=[];const sx=await z.read("xl/sharedStrings.xml");
+  if(sx)P.parseFromString(sx,"application/xml").querySelectorAll("si").forEach(si=>ss.push([...si.getElementsByTagName("t")].map(t=>t.textContent).join("")));
+  const sheet=z.names.filter(n=>/^xl\/worksheets\/sheet\d+\.xml$/.test(n)).sort()[0];const doc=P.parseFromString(await z.read(sheet),"application/xml"),rows=[];
+  doc.querySelectorAll("sheetData row").forEach(r=>{const row=[];r.querySelectorAll("c").forEach(c=>{const t=c.getAttribute("t"),v=c.querySelector("v"),is=c.querySelector("is");let val=is?[...is.getElementsByTagName("t")].map(x=>x.textContent).join(""):v?v.textContent:"";
+    if(t==="s")val=ss[+val]||"";else if((!t||t==="n")&&v&&/^0?\.\d+$/.test(val)){const mn=Math.round(parseFloat(val)*1440);val=Math.floor(mn/60)+":"+String(mn%60).padStart(2,"0")}row[colIdx(c.getAttribute("r"))]=val});rows.push(row)});
+  return rows}
+const readCsv=t=>t.split(/\r?\n/).filter(l=>l.trim()).map(l=>l.split(l.includes(";")?";":l.includes("\t")?"\t":","));
+function guessKind(t){const T=t.toUpperCase();return /^(NL|LLIURE|LIBRE|HORA LLIURE|COORD)/.test(T)?"nl":/^CD\b/.test(T)?"cd":/(PATI|PATIO|ESBARJO|REUNI|MENJADOR|COMEDOR|GUÀRDIA|GUARDIA)/.test(T)?"otro":""}
+function guessSubj(t){const T=t.toUpperCase();return /MATE/.test(T)?"mates":/MEDI|CIÈNCI|CIENCI|NATUR|SOCIAL/.test(T)?"medi":/ORTOGRAF/.test(T)&&CF('lng')?"orto":/CATAL|LLENGUA/.test(T)?(CF('lng')&&T.charAt(0)==="/"?"catd":"cat"):/CASTELL|LENGUA/.test(T)?"cas":/ANGL|INGL|ENGLISH/.test(T)?"angl":/MÚSIC|MUSIC/.test(T)?"mus":/PLÀST|PLAST|ART/.test(T)?"plas":/E\.?F\.?\b|FÍSICA|FISICA|GIMN/.test(T)?"ef":/VALOR|RELIG/.test(T)?"val":/TUTOR/.test(T)?"tut":/EXPR.*ORAL/.test(T)?"oral":""}
+function horarioFromRows(rows){const fr=[],cells={};rows.forEach(r=>{const h=normH(r&&r[0]);if(!h)return;let i=fr.indexOf(h);if(i<0){fr.push(h);i=fr.length-1}
+    for(let d=0;d<5;d++){const t=String((r[d+1]??"")).trim();if(!t)continue;const k=guessKind(t),sj=k?"":guessSubj(t);cells[i+"-"+d]={t:t.slice(0,40),c:SCOL[sj]||"",k,s:sj}}});
+  if(!fr.length)return {err:"No he encontrado horas en la primera columna. Usa la plantilla: horas en la columna A y lunes a viernes en las columnas B a F."};
+  const order=fr.map((h,i)=>[h,i]).sort((a,b)=>mins(a[0])-mins(b[0])),map={};order.forEach(([h,i],j)=>map[i]=j);const c2={};Object.keys(cells).forEach(k=>{const[i,d]=k.split("-");c2[map[i]+"-"+d]=cells[k]});
+  return {hor:{slots:order.map(x=>x[0]),cells:c2},units:[],res:[],subs:[],skipped:0}}
+document.addEventListener("change",async e=>{if(e.target.id!=="xlsfile")return;const f=e.target.files[0];e.target.value="";if(!f)return;
+  try{const r=/\.csv$/i.test(f.name)?horarioFromRows(readCsv(await f.text())):horarioFromRows(await readXlsx(await f.arrayBuffer()));importUI(r)}
+  catch(x){importUI({err:"No he podido leer el archivo. Guárdalo como .xlsx (Excel) o .csv y vuelve a probar."})}});
+
 function render(){
   $("#nav").innerHTML=[["hoy","Agenda"],["horario","Horario"],["prog","Programación"],["ev","Avaluació"],["rec","Recursos"]].map(t=>`<button data-tab="${t[0]}" ${tab===t[0]?'aria-current="page"':""}>${t[1]}</button>`).join("");
   if(tab==="leng")tab="prog";
@@ -695,7 +809,7 @@ function render(){
 
 function unitForm(u){
   u=u||{};
-  return [{k:"title",label:"Título de la unidad",value:u.title,req:1,ph:"Ej. Las fracciones"},{k:"subject",label:"Asignatura",value:u.subject,ph:"Ej. Matemàtiques 5è"},{k:"sj",label:"Sus sesiones van en la Agenda en las horas de…",type:"select",options:[["","Ninguna (solo en Programación)"],["mates","Matemàtiques"],["medi","Coneixement del medi"],["oral","Taller d'expressió oral"]],value:typeof u.sj==="string"?u.sj:subj(u)},{k:"start",label:"Inicio",type:"date",value:u.start},{k:"end",label:"Fin",type:"date",value:u.end},{k:"notes",label:"Notas u objetivos",type:"textarea",value:u.notes}];
+  return [{k:"title",label:"Título de la unidad",value:u.title,req:1,ph:"Ej. Las fracciones"},{k:"subject",label:"Asignatura",value:u.subject,ph:"Ej. Matemàtiques 5è"},{k:"sj",label:"Sus sesiones van en la Agenda en las horas de…",type:"select",options:unitSubjOpts(),value:typeof u.sj==="string"?u.sj:subj(u)},{k:"start",label:"Inicio",type:"date",value:u.start},{k:"end",label:"Fin",type:"date",value:u.end},{k:"notes",label:"Notas u objetivos",type:"textarea",value:u.notes}];
 }
 const genFields=(withNote)=>[{k:"g_a",label:"Páginas del libro: desde",type:"number",value:"",ph:"Ej. 82"},{k:"g_b",label:"Hasta",type:"number",value:"",ph:"Ej. 105"},
   {k:"g_skip",label:"Páginas que se saltan (opcional)",value:"",ph:"Ej. 101 (taller de problemes)"},{k:"g_n",label:"Páginas por sesión",type:"select",options:[["1","1"],["2","2"],["3","3"]],value:"2"},
@@ -735,7 +849,7 @@ document.addEventListener("click",e=>{
   else if(D.nt){const k=D.nt;modal('Nota del día',[{k:'n',label:'Nota (festivo, excursión, día flexible...)',type:'textarea',value:(C.nt||{})[k]||''}],d=>{C.nt=C.nt||{};if(d.n)C.nt[k]=d.n;else delete C.nt[k]})}
   else if(D.cell){const c=S.cells[D.cell]||{};const[i,j]=D.cell.split("-");
     modal(S.slots[i]+" · "+DAYS[j],[{k:"t",label:"Clase",value:c.t,ph:"Ej. Matemáticas 3ºA"},{k:"kd",label:"Tipo de hora",type:"select",options:KINDS,value:c.k||""},
-      {k:"s",label:"Asignatura en la Agenda",type:"select",options:CF('lng')?SJ:SJ.filter(o=>!['cat','catd','orto','cas'].includes(o[0])),value:typeof c.s==="string"?c.s:guessCell(c),hint:"Decide qué sesiones o contenidos de lengua aparecen en esta hora. El texto de «Clase» puede ser el que quieras."},
+      {k:"s",label:"Asignatura en la Agenda",type:"select",options:subjOpts(),value:typeof c.s==="string"?c.s:guessCell(c),hint:"Decide qué sesiones o contenidos de lengua aparecen en esta hora. El texto de «Clase» puede ser el que quieras."},
       {k:"n",label:"Nota fija (opcional)",value:c.n||"",ph:"Ej. Lectura del libro",hint:"Si la pones, la Agenda muestra siempre esta nota en esta hora."},
       {k:"aa",label:"Alterna cada semana: semana A (opcional)",value:(c.alt||[])[0]||"",ph:"Ej. Apadrinament"},{k:"ab",label:"Semana B",value:(c.alt||[])[1]||"",ph:"Ej. Cinefòrum emocional"},
       {k:"a0",label:"Un día de una semana A",type:"date",value:c.a0||"",hint:"Para alternar, rellena A y B. Si dejas la fecha vacía, la semana actual será la A."},
@@ -744,13 +858,15 @@ document.addEventListener("click",e=>{
       if(d.aa&&d.ab){const b=dt(d.a0||T0());n.alt=[d.aa,d.ab];n.a0=iso(addD(b,-wd(b)))}else{delete n.alt;delete n.a0}S.cells[D.cell]=n})}
   else if(D.slot){const i=+D.slot;modal("Franja horaria",[{k:"s",label:"Hora",value:S.slots[i],req:1}],d=>{S.slots[i]=d.s},()=>{S.slots.splice(i,1);const n={};Object.keys(S.cells).forEach(k=>{const[a,c]=k.split("-").map(Number);if(a<i)n[k]=S.cells[k];else if(a>i)n[(a-1)+"-"+c]=S.cells[k]});S.cells=n})}
   else if(D.act==="addslot")modal("Nueva franja",[{k:"s",label:"Hora",value:"",req:1,ph:"Ej. 14:00"}],d=>{S.slots.push(d.s)});
+  else if(D.act==="import")importUI();
+  else if(D.act==="xlsimp")$("#xlsfile").click();
   else if(D.act==="addunit")modal("Nueva unidad",unitForm().concat(genFields(1)),d=>{const g=genSessions(d);if(g.err){genErr(g.err);return false}
     const u={id:uid(),title:d.title,subject:d.subject,sj:d.sj,start:d.start,end:d.end,notes:d.notes,ses:g.ses};
     if(g.a&&!u.notes)u.notes=`Libro págs. ${g.a}–${g.b}${g.skip.length?`, sin la${g.skip.length>1?'s':''} pág. ${g.skip.join(', ')}`:''}.`;S.units.push(u)});
   else if(D.genp){const u=S.units.find(x=>x.id===D.genp);modal("Añadir sesiones por páginas",genFields(0),d=>{if(!d.g_a||!d.g_b){genErr("Escribe las páginas de inicio y de final.");return false}const g=genSessions(d);if(g.err){genErr(g.err);return false}u.ses.push(...g.ses)})}
   else if(D.eday){editDay(D.eday)}
   else if(D.dd!==undefined){if(D.dd==="0")dOff=0;else{let n=dOff;do{n+=+D.dd}while(wd(addD(new Date(),n))>4);dOff=n}render()}
-  else if(D.resch){const[id,i]=D.resch.split(":"),u=S.units.find(x=>x.id===id);if(u){const x=u.ses[+i];if(['mates','medi','oral'].includes(subj(u))){delete x.d;save();render()}else editSes(D.resch)}}
+  else if(D.resch){const[id,i]=D.resch.split(":"),u=S.units.find(x=>x.id===id);if(u){const x=u.ses[+i];if(isUnitSubj(subj(u))){delete x.d;save();render()}else editSes(D.resch)}}
   else if(D.bk){backupsUI()}
   else if(D.aiopen){aiUI()}
   else if(D.acc){accountsUI()}
@@ -839,8 +955,8 @@ function aiPrep(a){const no=m=>({err:m});if(!a||typeof a!=='object')return no('v
   case 'dia':{const map={normal:'',sin_clase:'off',sin_clase_manana:'m',sin_clase_tarde:'t',light:'lt'};if(!isD(a.fecha)||!(a.clase in map))return no('día');const ty=map[a.clase];
     return {d:`${Fl(a.fecha)}: ${dayTypes.find(t=>t[0]===ty)[1].replace(/^./,c=>c.toLowerCase())}`,run:()=>{const k=a.fecha;C.off=(C.off||[]).filter(x=>x!==k);C.lt=(C.lt||[]).filter(x=>x!==k);C.hd=C.hd||{};delete C.hd[k];if(ty==='off')C.off.push(k);else if(ty==='lt')C.lt.push(k);else if(ty)C.hd[k]=ty}}}
   case 'nota':{if(!isD(a.fecha))return no('nota');const t=String(a.texto||'').trim();return {d:t?`${Fl(a.fecha)}: nota «${t}»`:`${Fl(a.fecha)}: borrar la nota`,run:()=>{C.nt=C.nt||{};if(t)C.nt[a.fecha]=t;else delete C.nt[a.fecha]}}}
-  case 'no_avanzo':{if(!isD(a.fecha)||!Array.isArray(a.asignaturas))return no('no avanzó');const l=[...new Set(a.asignaturas.filter(x=>SKL[x]))];
-    return {d:l.length?`${Fl(a.fecha)}: no se avanzó en ${l.map(x=>SKL[x]).join(', ')}`:`${Fl(a.fecha)}: quitar «no se avanzó»`,run:()=>{S.sk=S.sk||{};if(l.length)S.sk[a.fecha]=l;else delete S.sk[a.fecha]}}}
+  case 'no_avanzo':{if(!isD(a.fecha)||!Array.isArray(a.asignaturas))return no('no avanzó');const l=[...new Set(a.asignaturas.filter(x=>typeof x==='string'&&x))];
+    return {d:l.length?`${Fl(a.fecha)}: no se avanzó en ${l.map(subjName).join(', ')}`:`${Fl(a.fecha)}: quitar «no se avanzó»`,run:()=>{S.sk=S.sk||{};if(l.length)S.sk[a.fecha]=l;else delete S.sk[a.fecha]}}}
   case 'nueva_sesion':{const u=U(a.unidad),t=String(a.texto||'').trim();if(!u||!t)return no('sesión');if(a.fecha&&!isD(a.fecha))return no('fecha');const hasPos=Number.isInteger(a.antes_de),ref=hasPos?u.ses[a.antes_de]:null;if(hasPos&&!ref)return no('posición');
     return {d:`${u.title}: nueva sesión «${t}»${ref?` antes de «${ref.t}»`:' al final'}${a.fecha?`, el ${fl(a.fecha)}`:''}`,run:()=>{const x={t,done:false};if(a.fecha)x.d=a.fecha;if(a.imprimir)x.p=String(a.imprimir);const i=ref?u.ses.indexOf(ref):-1;if(i<0)u.ses.push(x);else u.ses.splice(i,0,x)}}}
   case 'editar_sesion':{const u=U(a.unidad),x=u&&Number.isInteger(a.indice)&&u.ses[a.indice];if(!x)return no('sesión');if(a.fecha&&!isD(a.fecha))return no('fecha');const ch=[],tx=typeof a.texto==='string'?a.texto.trim():'';
