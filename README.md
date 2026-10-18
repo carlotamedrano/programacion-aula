@@ -42,6 +42,12 @@ Los datos se guardan en un almacén privado de Vercel y se sincronizan entre dis
 - El **calendario del cole** (días sin clase, light, medias jornadas y notas del día) es común: lo ven y lo pueden editar todas las cuentas.
 - Cada compañero puede cambiar su contraseña con **Cambiar contraseña**, y **Salir** cierra la sesión en ese dispositivo.
 
+## Avaluació
+
+- Pestaña **Avaluació**: lista de la clase, notas por dimensiones, ficha de cada alumno con el comentario general y por áreas, niveles para copiar en Alexia, y banco de frases por curso y trimestre.
+- **Privacidad:** en la nube solo se guardan los **números de lista** y las notas. Los **nombres** son opcionales y se guardan únicamente en el dispositivo donde se escriben (si no hay nombre, el comentario dice «L'alumne 7»). El asistente de IA no tiene acceso a esta sección.
+- Las notas se pueden pegar desde Excel, Sheets o iDoceo directamente en la tabla.
+
 ## Asistente con IA
 
 El botón **Asistente** (abajo a la derecha) entiende peticiones como «el viernes hay excursión» o «hoy no he avanzado en Medi» y propone los cambios. No cambia nada hasta pulsar **Aplicar cambios**, y después se puede **Deshacer**.

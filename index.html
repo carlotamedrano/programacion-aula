@@ -9,11 +9,11 @@
 <style>
 :root{/* Lila de cuaderno: títulos en letra ligada caligráfica (Sacramento), texto en Figtree */
 --bg:#f5f2fb;--paper:#fff;--ink:#2b2142;--muted:#675d80;--line:#e2daf0;--pri:#7046c8;--onpri:#fff;--hl:#e6dafb;--onhl:#3a2470;--dng:#b3261e;--rule:#cdbfe9;
---c1:#dfe8fb;--c2:#dcf0e2;--c3:#fbe5d5;--c4:#ebdff9;
+--c1:#dfe8fb;--c2:#dcf0e2;--c3:#fbe5d5;--c4:#ebdff9;--NA:#f6d0cb;--AS:#f6e4b4;--AN:#d3e2f4;--AE:#cdebd6;
 --display:Sacramento,"Segoe Script","Brush Script MT",cursive;--body:Figtree,system-ui,-apple-system,"Segoe UI",sans-serif;color-scheme:light;
 box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
-@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#15111d;--paper:#1f1a2b;--ink:#ece6f8;--muted:#aa9fc4;--line:#352c48;--pri:#b49af0;--onpri:#1a1326;--hl:#3d2f5f;--onhl:#efe6ff;--dng:#ff8a80;--rule:#4a3d68;--c1:#24304d;--c2:#1f3a2b;--c3:#43301f;--c4:#372a52;color-scheme:dark}}
-:root[data-theme="dark"]{--bg:#15111d;--paper:#1f1a2b;--ink:#ece6f8;--muted:#aa9fc4;--line:#352c48;--pri:#b49af0;--onpri:#1a1326;--hl:#3d2f5f;--onhl:#efe6ff;--dng:#ff8a80;--rule:#4a3d68;--c1:#24304d;--c2:#1f3a2b;--c3:#43301f;--c4:#372a52;color-scheme:dark}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#15111d;--paper:#1f1a2b;--ink:#ece6f8;--muted:#aa9fc4;--line:#352c48;--pri:#b49af0;--onpri:#1a1326;--hl:#3d2f5f;--onhl:#efe6ff;--dng:#ff8a80;--rule:#4a3d68;--c1:#24304d;--c2:#1f3a2b;--c3:#43301f;--c4:#372a52;--NA:#5b2d29;--AS:#59491f;--AN:#27455c;--AE:#24513a;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#15111d;--paper:#1f1a2b;--ink:#ece6f8;--muted:#aa9fc4;--line:#352c48;--pri:#b49af0;--onpri:#1a1326;--hl:#3d2f5f;--onhl:#efe6ff;--dng:#ff8a80;--rule:#4a3d68;--c1:#24304d;--c2:#1f3a2b;--c3:#43301f;--c4:#372a52;--NA:#5b2d29;--AS:#59491f;--AN:#27455c;--AE:#24513a;color-scheme:dark}
 *{box-sizing:border-box}
 html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 var(--body)}
 main{max-width:1100px;margin:0 auto;padding:16px 14px 150px}
@@ -83,6 +83,20 @@ body.locked #aibtn{display:none}
 .fold summary{cursor:pointer;padding:2px 0}
 .fold[open] summary{margin-bottom:10px}
 .foldin .card{margin-bottom:10px}
+.ev-wrap{overflow-x:auto;max-width:100%;border:1px solid var(--line);border-radius:10px;background:var(--paper);margin-top:8px}
+#ev table{border-collapse:collapse;border-spacing:0;min-width:0;width:auto;font-size:.82rem}
+#ev th,#ev td{border:1px solid var(--line);padding:3px 4px;text-align:center;color:var(--ink)}
+#ev th{background:var(--bg);font-weight:600;vertical-align:bottom}
+#ev th.a{background:var(--pri);color:var(--onpri)}
+#ev td.n,#ev th.n{position:sticky;left:0;background:var(--paper);text-align:left;min-width:96px;z-index:1;white-space:nowrap}
+#ev th.d{min-width:66px;max-width:80px;font-weight:500;font-size:.72rem}
+#ev td input{width:46px;border:0;background:transparent;text-align:center;padding:5px 2px;border-radius:4px;font-variant-numeric:tabular-nums}
+#ev .lNA{background:var(--NA)}#ev .lAS{background:var(--AS)}#ev .lAN{background:var(--AN)}#ev .lAE{background:var(--AE)}
+#ev .ev-fi{width:100%}#ev .ev-fi td{text-align:left;padding:5px 8px}#ev .ev-fi td.c{text-align:center;font-weight:600;width:64px}#ev .ev-fi tr.ar td{font-weight:700}
+#ev .ev-cm{line-height:1.5}
+.ev-names{display:grid;grid-template-columns:auto 1fr;gap:6px 10px;align-items:center;margin-top:8px}
+.ev-names label{margin:0;font-variant-numeric:tabular-nums;text-align:right}
+.ev-nav select{width:auto}
 .bk{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 0;border-top:1px solid var(--line)}
 #lock{display:none}
 body.locked main,body.locked nav,body.locked #syncbar{display:none}
@@ -473,10 +487,210 @@ function vAgenda(){const E=sched(),T=new Date(),t0=iso(T);
     h+=`</div><h2>${Fl(sel)}</h2>${dayHtml(sel,E)}${wd(dt(sel))<5?`<div style='margin-top:10px'><button class='btn' data-eday='${sel}'>Editar día</button></div>`:''}`}
   else{const r=printList(E);h+=r.length?r.map(o=>{const n=Math.round((dt(o.e)-dt(t0))/864e5);return `<div class='card'><b>${Fl(o.e)}</b> <span class='muted'>(${n===0?'hoy':n===1?'mañana':'en '+n+' días'})</span><div>${esc(o.p)}</div><div class='muted'>${esc(o.u)}. Imprimir antes del ${fl(prevDay(o.e))}.</div></div>`}).join(''):`<div class='empty'>No hay nada pendiente de imprimir. Al editar una sesión puedes poner la fecha y qué imprimir.</div>`}
   return h}
+// ===== Avaluació: notes per número de llista; els noms només es guarden en aquest dispositiu =====
+const EV=(()=>{
+const A=[
+{n:'Llengua catalana i literatura',s:'català',d:['Comunicació oral','Comprensió lectora','Expressió escrita','Literària','Ortografia, gramàtica i lèxic']},
+{n:'Llengua castellana i literatura',s:'castellà',d:['Comunicació oral','Comprensió lectora','Expressió escrita','Literària','Ortografia, gramàtica i lèxic']},
+{n:'Llengua estrangera: Anglès',d:['Listening (comprensió oral)','Reading (comprensió escrita)','Speaking (expressió oral)','Writing (expressió escrita)']},
+{n:'Matemàtiques',d:['Càlcul','Sentit numèric','Sentit de la mesura','Sentit espacial i geometria','Resolució de problemes']},
+{n:'Coneixement del medi',d:['Cultura científica','Tecnologia i digitalització','Societats i territori']},
+{n:'Educació artística: Plàstica',d:['Percepció i creació']},
+{n:'Educació artística: Música',d:['Percepció i desenvolupament','Anàlisi i investigació de la cultura','Creació i experimentació','Valoració del procés artístic']},
+{n:'Educació Física',d:["Situacions motrius i l'activitat física","Activitats individuals i col·lectives","Valoració de l'espai, el temps i les habilitats socials",'Ioga']},
+{n:'Valors Socials i Cívics',d:['Autonomia i responsabilitat','Habilitats i valors socials','Gestió emocional i personal']}];
+const D=[];A.forEach((a,i)=>a.d.forEach(d=>D.push({a:i,d,lab:a.s?d.toLowerCase()+' ('+a.s+')':d.toLowerCase()})));
+const TXs={E:'excel·lent',N:'notable',S:'satisfactori'};
+const DEF0=()=>({in:{E:'{n} ha fet un trimestre excel·lent, amb molt bons resultats en general.',N:'{n} ha fet un bon trimestre, amb resultats notables en general.',S:'{n} ha assolit els objectius bàsics del trimestre, però ha de continuar esforçant-se per millorar.',X:'{n} ha tingut dificultats per assolir els objectius del trimestre i necessita un reforç.'},cl:'Bon Nadal, família!',act:[{k:'Treballador',t:'Ha treballat molt aquest trimestre.'},{k:'Actitud positiva',t:'Mostra una actitud molt positiva per aprendre i, gràcies a un constant esforç, va millorant.'},{k:'Despistat',t:'A vegades està {despistat|despistada} i no es centra del tot en la feina que ha de fer.'},{k:'Evolució positiva',t:'Ha fet una evolució positiva al llarg del trimestre.'},{k:'Pot donar més',t:'Creiem que pot donar molt més de {si mateix|si mateixa} i l\'animem a seguir treballant.'}],ar:A.map(a=>{const n=a.n.toLowerCase(),o={};for(const k in TXs)o[k]='{n} ha tingut un assoliment '+TXs[k]+' a l\'àrea de '+n+'.';o.X='{n} no ha assolit els continguts mínims de l\'àrea de '+n+'.';return o})});
+const VEL=[{k:'Velocitat: s\'esforça però costa',t:`S'observa un esforç constant, però la velocitat lectora encara és baixa. Cal continuar treballant la lectura diària per guanyar seguretat i agilitat.`},{k:'Velocitat: falta d\'hàbit',t:`Cal potenciar l'hàbit lector a casa per millorar la fluïdesa, ja que el ritme actual dificulta l'assoliment dels objectius de comprensió de l'àrea.`},{k:'Velocitat: lectura sil·làbica',t:`{n} encara presenta una lectura poc lligada. Treballarem la lectura repetida de textos curts per millorar l'automatització de les paraules.`}];
+const REF={1:[20,30,40],2:[45,55,60],3:[70,80,90],4:[95,100,105],5:[115,125,135],6:[145,155,160]};
+const NEG=[{k:`Rendiment per sota`,t:`El rendiment es troba per sota de les seves possibilitats. Té capacitat per fer molt més, però sovint no mostra la implicació ni l'esforç necessaris en les tasques.`},{k:`Actitud a l'aula`,t:`A l'aula, la seva actitud no sempre és l'adequada: tendeix a queixar-se, qüestionar les propostes i li costa mantenir-se {motivat|motivada} i {centrat|centrada} en el treball.`},{k:`Cal canvi d'actitud`,t:`Cal treballar per millorar aquesta actitud i fomentar una major responsabilitat envers l'aprenentatge. Estic segura que, amb un canvi d'actitud, pot progressar molt positivament. L'animo a esforçar-se i a aprofitar tot el seu potencial el proper trimestre.`}];
+const DEF=(cu,tr)=>{const b=DEF0(),c=String(cu);tr=+tr||1;b.cl=['','Bon Nadal, família!','Bona Pasqua, família!','Bon estiu, família!'][tr]||'';
+  if(c==='6'&&tr===3){Object.assign(b.in,{E:`{n} ha treballat de valent durant aquest curs. S'ha esforçat dia rere dia per comprendre i poder fer la feina ben feta. Ha realitzat una evolució molt positiva i valoro molt la seva actitud.`,N:`{n} ha treballat molt aquest curs. Mostra una actitud molt positiva per aprendre i, de mica en mica, gràcies a un constant esforç, va millorant.`,S:`{n} ha fet una evolució positiva al llarg del curs.`,X:`{n} ha fet una evolució positiva al llarg del curs.`});
+    b.cl=`L'animo a treballar com fins ara i a donar el millor {d'ell mateix|d'ella mateixa} a l'ESO. Bones vacances família!`;
+    b.act=[{k:'Aprèn amb facilitat',t:`Mostra una elevada capacitat a l'hora de desenvolupar el seu procés d'aprenentatge i dia rere dia aprèn amb facilitat.`},{k:'Despistat',t:`És {un nen treballador|una nena treballadora} tot i que, a vegades, està {despistat|despistada} i no es centra del tot en la feina que ha de fer.`},{k:'Motivació',t:`He notat que en aquest últim trimestre la seva motivació ha quedat reflectida en les millores que ha fet a nivell de continguts.`},{k:'Pot donar més',t:`Des de l'escola creiem que pot donar molt més {d'ell mateix|d'ella mateixa} i l'animem a seguir treballant per tal de poder assolir els continguts necessaris i així tenir un ritme més constant a l'ESO.`}]}
+  if(c==='1'&&tr===1){const G1=`L'adaptació a primer de primària ha estat satisfactòria. Ha demostrat una actitud positiva envers els nous reptes.`;
+    Object.assign(b.in,{E:G1+` Mostra interès per aprendre i està adquirint els coneixements amb facilitat.`,N:G1+` Mostra interès per aprendre i està adquirint els coneixements amb facilitat.`,S:G1+` Mostra interès per aprendre i ha fet una evolució positiva durant el trimestre.`,X:G1+` S'ha integrat bé en la dinàmica de grup. Continuarem treballant per reforçar la seva autonomia i confiança en les diferents activitats acadèmiques.`});
+    b.cl=`Bones festes!`;
+    b.act=[{k:'Participa',t:`Participa de manera activa en les activitats proposades. Mostra una actitud cooperativa i manté relacions respectuoses i adequades amb els companys/es.`},{k:'Autonomia',t:`Continuarem treballant per reforçar la seva autonomia i confiança en les diferents activitats acadèmiques.`}];
+    Object.assign(b.ar[0],{E:`Domina la lectura en lletra de pal i també en lligada. És capaç de comprendre paraules, oracions i textos quan llegeix. És capaç d'escriure per si {sol|sola} paraules, frases i textos sense faltes d'ortografia. Es fixa molt en com s'escriuen les paraules. Fa molt bona cal·ligrafia. Té bones habilitats comunicatives quan parla en català.`,N:`Domina la lectura en lletra de pal i s'ha iniciat en la lectura en lligada. És capaç de comprendre paraules i oracions quan llegeix. És capaç d'escriure per si {sol|sola} i ha millorat molt la cal·ligrafia.`,S:`Cada cop llegeix paraules i petites oracions en lletra de pal amb més fluïdesa, però cal continuar treballant la lectura. Comprèn el que llegeix sobretot paraules, frases encara costen una mica. És capaç d'escriure paraules per si {sol|sola}.`,X:`Li costa comprendre el que llegeix. És capaç d'escriure per si {sol|sola} frases, però encara omet o substitueix alguns sons. Cal continuar treballant en la lectura.`});
+    Object.assign(b.ar[1],{E:`És capaç de comprendre textos quan llegeix. És capaç d'escriure per si {sol|sola} frases i textos breus. Aplica algunes normes d'ortografia quan escriu. Fa molt bona cal·ligrafia.`,N:`És capaç de comprendre frases quan llegeix, textos costa més. És capaç d'escriure per si {sol|sola} frases, ha de començar a fixar-se com s'escriuen paraules d'ús habitual per no fer faltes d'ortografia.`,S:`És capaç de comprendre oracions quan llegeix, textos costen més. És capaç d'escriure per si {sol|sola} frases, però encara omet o substitueix alguns sons. Fa bona cal·ligrafia. Cal continuar treballant en la lectura.`,X:`Li costa comprendre el que llegeix. És capaç d'escriure per si {sol|sola} frases, però encara omet o substitueix alguns sons. Tampoc es fixa com s'escriuen paraules d'ús habitual per no fer faltes d'ortografia. Cal continuar treballant en la lectura.`});
+    Object.assign(b.ar[3],{E:`Ha demostrat un bon assoliment en les competències matemàtiques treballades. Domina el càlcul i sentit numèric (ordenació i comptatge) fins números amb centena. Ha entès amb facilitat els conceptes de mesura i geometria treballats. Resol amb èxit problemes visuals de suma i resta.`,N:`Ha demostrat un bon assoliment en les competències matemàtiques treballades. Domina el càlcul i sentit numèric (ordenació i comptatge) fins el 20. Ha entès amb facilitat els conceptes de mesura i geometria treballats. Resol amb èxit problemes visuals de suma i resta.`,S:`Ha comèncat a fer càlculs i resolucions de problemes amb més dificultat.`,X:`Comença a dominar el càlcul i sentit numèric (ordenació i comptatge) fins el 20. Cal fer-ho de manera visual. Ha entès amb facilitat els conceptes de mesura i geometria treballats. Encara li costa resoldre problemes visuals de suma i resta.`});
+    Object.assign(b.ar[4],{E:`Mostra molt d'interès per la matèria i es qüestiona coses sobre la temàtica del projecte. A més gaudeix del treball cooperatiu. Ha adquirit amb facilitat tots els continguts treballats aquest trimestre.`,N:`Mostra interès per la matèria i ha entès i adquirit els continguts treballats aquest trimestre. Gaudeix del treball cooperatiu i col·labora activament.`,S:`Ha après part del vocabulari dels projectes. Alguns conceptes no ha acabat d'assolir-los. Gaudeix treballant en grup amb els seus companys i companyes.`,X:`Ha après part del vocabulari dels projectes. Alguns conceptes no ha acabat d'assolir-los. Gaudeix treballant en grup amb els seus companys i companyes.`});
+    const V=`Mostra una bona capacitat per identificar i gestionar les seves emocions, adaptant-se amb flexibilitat a noves situacions. Participa activament en les activitats proposades. També destaca per la seva actitud cooperativa i per mantenir relacions respectuoses i adequades amb els companys/es.`,W=`Continuarem treballant com afrontar les dificultats o errors i veure'ls com una oportunitat d'aprenentatge.`;
+    Object.assign(b.ar[8],{E:V,N:V,S:W,X:W})}
+  if(c==='1'&&tr>1){const P=(i,e,n,s,x)=>Object.assign(b.ar[i],{E:e,N:n,S:s,X:x||s});
+    if(tr===2){
+      Object.assign(b.in,{E:`Al llarg d'aquest segon trimestre, {n} ha treballat amb dedicació i constància. A classe manté una actitud molt positiva, està {atent|atenta} i participa activament en les diferents matèries. S'esforça per assimilar nous aprenentatges i progressar dia a dia. Estic molt satisfeta amb la feina que ha fet durant el trimestre, i el seu esforç es veu reflectit en els resultats. L'encoratjo a seguir amb aquesta actitud el proper trimestre!`,N:`Al llarg d'aquest segon trimestre, {n} ha demostrat esforç i dedicació en el seu treball. A classe manté una actitud molt positiva, està {atent|atenta} i participa activament en les diferents matèries. Treballa per assimilar nous coneixements i millora en aquells continguts que li presenten més dificultats. Estic molt satisfeta amb la seva feina aquest trimestre. L'encoratjo a seguir amb aquesta actitud el proper trimestre!`,S:`Durant aquest segon trimestre, {n} ha mostrat algunes dificultats en diversos aspectes del seu aprenentatge, però ha demostrat un gran esforç i constància per superar-les. A classe, tot i les dificultats, manté una actitud positiva, està {atent|atenta} i intenta participar en les matèries. Cal seguir reforçant àrees com la lectura i l'escriptura, però el seu esforç és evident. L'encoratjo a seguir així el proper trimestre!`});b.in.X=b.in.S;b.cl='Bona Pasqua!';
+      b.act=[{k:'Lectura i escriptura',t:`És important que continuï treballant la lectura i l'escriptura com ho ha fet fins ara.`}];
+      P(0,`És capaç de comprendre oracions i textos quan llegeix. Escriu per si {sol|sola} frases i aplica normes ortogràfiques quan escriu. Es nota un progrés en l'aplicació de normes com l'ús de majúscules i punts. Fa bona cal·ligrafia en lletra lligada.`,`És capaç de comprendre oracions i textos breus quan llegeix. Escriu per si {sol|sola} frases i aplica algunes normes d'ortografia en paraules d'ús comú quan escriu. És important que comenci a aplicar normes com l'ús de majúscules i punts. Fa bona cal·ligrafia en lletra lligada.`,`A vegades li costa comprendre el que llegeix, sobretot quan són textos breus. És capaç d'escriure per si {sol|sola} frases, però encara omet o substitueix alguns sons. Cal que comenci a fixar-se com s'escriuen paraules d'ús habitual per no fer faltes d'ortografia i comenci a incorporar l'ús de majúscules i punts quan escriu oracions. Fa bona cal·ligrafia en lletra lligada. Cal continuar treballant en la lectura perquè cada vegada sigui més fluïda.`,`Presenta dificultats en el reconeixement de les lletres i continua sense relacionar el so amb la grafia. És important seguir treballant la consciència fonològica.`);
+      P(1,`Comprèn bé els textos quan llegeix i és capaç d'escriure frases i textos curts de manera autònoma, aplicant algunes normes ortogràfiques. Ha assolit els continguts treballats durant el trimestre de manera excel·lent.`,`Entén bé les frases quan llegeix, tot i que els textos més llargs li continuen resultant més difícils. Pot escriure frases per si {sol|sola}, però ha de fixar-se més en l'ortografia de les paraules d'ús habitual per evitar errors.`,`Comprèn oracions quan llegeix, encara que els textos sencers li costen més. Pot escriure frases de manera autònoma, però encara omet o substitueix alguns sons. És important continuar treballant la lectura per millorar la fluïdesa.`,`Té dificultats per comprendre el que llegeix. Pot escriure frases de manera autònoma, però encara omet o substitueix alguns sons i no es fixa prou en l'ortografia de les paraules d'ús habitual. És necessari seguir treballant la lectura per reforçar aquests aspectes.`);
+      P(3,`Mostra destresa en la suma i la resta de nombres de dues xifres. Col·loca els nombres de manera precisa a la recta numèrica, els compara amb seguretat i els descompon adequadament. Identifica i escriu correctament els nombres dictats. Ordena correctament els dies de la setmana i els mesos de l'any. Resol amb encert problemes de suma i resta, seleccionant les operacions adequades segons la situació.`,`Demostra un domini adequat de la suma i la resta de nombres de dues xifres, tot i que en ocasions necessita revisar els càlculs. Situa els nombres correctament a la recta numèrica, els compara i els descompon de manera satisfactòria. Identifica i escriu els nombres dictats amb precisió. Ordena els dies de la setmana i els mesos de l'any de manera correcta. Resol problemes de suma i resta escollint les operacions adequades, encara que de vegades requereix suport per interpretar l'enunciat.`,`Presenta dificultats en la suma i la resta de nombres de dues xifres i necessita reforçar l'estratègia de càlcul. Requereix suport per situar els nombres a la recta numèrica, comparar-los i descompondre'ls correctament. Mostra inseguretat en la identificació i l'escriptura de nombres dictats. Necessita més pràctica per ordenar els dies de la setmana i els mesos de l'any. Requereix acompanyament en la resolució de problemes de suma i resta per seleccionar les operacions adequades.`);
+      P(4,`Mostra una gran curiositat pel món dels éssers vius i planteja preguntes constants sobre les funcions vitals i els ecosistemes. A més, gaudeix col·laborant en les tasques d'observació en equip. Ha assimilat amb molta facilitat tots els continguts sobre la classificació dels regnes treballats aquest trimestre.`,`Mostra molt d'interès per la matèria i formula preguntes sobre les temàtiques dels projectes. A més, gaudeix de la feina en equip. Ha comprès amb facilitat tots els continguts treballats aquest trimestre.`,`Cal que mostri més interès pel funcionament dels éssers vius. Encara està en procés d'assolir alguns continguts sobre les característiques dels grups de vertebrats treballats aquest trimestre.`,`Ha adquirit part del vocabulari dels projectes, tot i que alguns conceptes encara no els domina completament. Gaudeix treballant en grup amb els seus companys i companyes.`);
+      P(8,`Mostra bona autonomia, gestiona les emocions de manera adequada i manté bones habilitats socials.`,`Mostra bona autonomia, gestiona les emocions de manera adequada i manté bones habilitats socials.`,`Mostra bona autonomia, tot i que a vegades necessita suport. Gestiona les emocions de manera adequada, però requereix acompanyament en situacions de frustració. Manté bones habilitats socials, tot i que pot millorar en l'escolta activa i la resolució de conflictes.`);
+    }else{
+      Object.assign(b.in,{E:`{n} ha fet un bon recorregut al llarg d'aquest primer curs de primària. Ha crescut tant a nivell acadèmic com personal, adquirint nous aprenentatges i desenvolupant una actitud cada vegada més autònoma i responsable. Durant aquest tercer trimestre ha mantingut una actitud molt positiva envers l'aprenentatge: treballa amb constància, participa activament a classe i mostra interès per tot allò que fa. Ha consolidat els continguts treballats al llarg del curs i ha fet un bon progrés personal i acadèmic.`,N:`Aquest tercer trimestre, {n} ha mostrat una bona actitud i constància en el treball. Ha anat consolidant de manera progressiva els aprenentatges i ha millorat en aquells aspectes que li resultaven més difícils. A classe es mostra {participatiu|participativa} i amb ganes d'aprendre, i això es reflecteix en el seu progrés.`,S:`Al llarg d'aquest tercer trimestre, {n} ha continuat esforçant-se per superar les dificultats que es presenten en alguns àmbits de l'aprenentatge. Tot i que encara hi ha aspectes a reforçar, especialment en lectura i expressió escrita, el seu esforç ha estat constant. És {un alumne|una alumna} que no es rendeix i mostra ganes de millorar.`});b.in.X=b.in.S;
+      b.cl=`Estic molt contenta del seu esforç i evolució durant el curs. Ara és moment de gaudir d'unes merescudes vacances i tornar amb energia per començar segon! Bon estiu i enhorabona per la feina feta!`;b.act=[];
+      P(0,`És capaç de comprendre oracions i textos quan llegeix. Escriu frases de manera autònoma i aplica correctament normes ortogràfiques bàsiques. Fa una cal·ligrafia clara i acurada en lletra lligada. Separa correctament les paraules en síl·labes, identifica i empra amb encert algunes famílies de paraules, i utilitza l'article dins l'oració. Redacta oracions amb majúscula inicial i punt final de manera autònoma i coherent. L'evolució al llarg del curs ha estat excel·lent.`,`És capaç de comprendre oracions i textos breus quan llegeix. Escriu frases de manera autònoma i aplica algunes normes ortogràfiques en paraules d'ús habitual. Fa bona cal·ligrafia en lletra lligada. Identifica les síl·labes en paraules senzilles, però encara comet errors puntuals. Comença a reconèixer i usar famílies de paraules, tot i que necessita suport. Empra articles en frases simples, però cal que en consolidi l'ús. Cal continuar incidint en la construcció d'oracions completes amb majúscula i punt. L'evolució al llarg del curs ha estat adequada.`,`A vegades té dificultats per comprendre textos breus. Escriu frases de manera autònoma, però encara omet o substitueix alguns sons. Cal que es fixi en com s'escriuen paraules d'ús freqüent i comenci a incorporar l'ús correcte de majúscules i punts. Fa bona cal·ligrafia en lletra lligada. Cal continuar reforçant la lectura per millorar la fluïdesa. Té dificultats per separar paraules en síl·labes i necessita suport per fer-ho. Encara no identifica famílies de paraules amb autonomia.`,`S'esforça en comunicar-se oralment en català, tot i que sol iniciar les converses en castellà. En l'escriptura, només fa còpies en lletra de pal seguint un model. Presenta dificultats en el reconeixement de les lletres i encara no relaciona el so amb la grafia. És fonamental continuar treballant la consciència fonològica. L'evolució al llarg del curs ha estat progressiva.`);
+      P(1,`L'evolució al llarg del curs ha estat excel·lent. Comprèn oracions i textos, escriu de manera autònoma amb bona ortografia i presenta una cal·ligrafia clara. Mostra domini de les estructures bàsiques de l'escriptura.`,`L'evolució al llarg del curs ha estat adequada. Escriu frases de manera autònoma i comença a mostrar una cal·ligrafia més clara en lletra lligada. Tot i això, encara presenta algunes dificultats en la comprensió de textos breus, en oracions mostra facilitat. Recomano reforçar la lectura per millorar-ne la fluïdesa i la comprensió.`,`L'evolució al llarg del curs ha estat adequada. Escriu frases de manera autònoma i comença a mostrar una cal·ligrafia més clara en lletra lligada. Tot i això, encara presenta algunes dificultats en la comprensió de textos breus, en oracions mostra facilitat. Recomano reforçar la lectura per millorar-ne la fluïdesa i la comprensió.`);
+      P(3,`Mostra una bona destresa en la suma i la resta de nombres de dues xifres i en la suma de tres nombres d'una xifra. També resol amb encert sumes portant-ne, tot i que de manera guiada. Situa correctament els nombres a la recta numèrica fins al 99, fa comptatges endavant, enrere i de dos en dos, i els compara i ordena amb seguretat. Identifica els nombres anteriors i posteriors, descompon correctament els nombres fins al 99 i escriu sense errors els nombres dictats. Diferencia nombres parells i senars, i utilitza amb encert monedes i bitllets d'euro. Reconeix diversos polígons, els seus costats i vèrtexs. Resol de manera autònoma problemes orals i escrits de suma i resta, escollint bé les operacions segons la situació.`,`Demostra un bon domini de la suma i la resta de dues xifres, tot i que de vegades necessita revisar els càlculs o fer-ho amb suport. És capaç de fer la suma de tres nombres d'una xifra i comença a comprendre la suma portant-ne. Situa els nombres a la recta numèrica fins al 99, fa comptatges i és capaç de comparar i ordenar els nombres, tot i que de vegades comet errors puntuals. Coneix els nombres anteriors i posteriors, descompon correctament la major part dels nombres i escriu amb precisió els nombres dictats. Distingeix parells i senars i reconeix les monedes i bitllets més habituals. Identifica alguns polígons i sap comptar costats i vèrtexs amb ajuda. Participa activament en la resolució de problemes de suma i resta, tot i que a vegades necessita suport per entendre l'enunciat.`,`Comença a consolidar les estratègies de suma i resta de dues xifres, però encara necessita suport freqüent per fer càlculs correctes. La suma de tres nombres d'una xifra es fa amb ajuda, i la suma portant-ne encara no està adquirida. Té dificultats per situar els nombres a la recta numèrica i per fer comptatges ordenats. En la resolució de problemes, cal acompanyament per entendre què se li demana i escollir l'operació correcta.`,`Presenta dificultats en la suma i la resta de dues xifres, i requereix ajuda constant per aplicar estratègies de càlcul. No ha adquirit la suma portant-ne ni la suma de tres nombres d'una xifra. Mostra dificultats per situar els nombres a la recta numèrica, fer comptatges, comparar, ordenar i descompondre nombres. En la resolució de problemes necessita suport constant per interpretar els enunciats i escollir les operacions adequades.`);
+      const M=`Demostra un gran interès per la matèria i sovint formula preguntes pertinents que mostren la seva curiositat i implicació. Ha assimilat amb facilitat els continguts treballats durant el trimestre.`,M2=`Tot i que encara hi ha alguns conceptes que no domina completament, ha adquirit bona part del vocabulari propi dels projectes.`;
+      P(4,M,M,M2);
+      const V3=`Participa activament a les activitats de valors, mostrant respecte i empatia cap als companys i companyes. Entén la importància de compartir, cooperar i ajudar els altres, i comença a aplicar aquests valors en el dia a dia. Continua treballant en la comunicació i la gestió de les emocions per seguir creixent personalment i socialment.`;
+      P(8,V3,V3,`Mostra bona autonomia, tot i que a vegades necessita suport. Gestiona les emocions de manera adequada, però requereix acompanyament en situacions de frustració. Manté bones habilitats socials, tot i que pot millorar en l'escolta activa i la resolució de conflictes.`);
+    }}
+  if(c==='5'&&tr===2){
+    Object.assign(b.in,{E:`Durant aquest segon trimestre, {n} ha treballat de valent. A classe mostra una actitud molt bona, {està atent|està atenta}, participa i s'esforça per millorar i aprendre més cada dia. Estic molt contenta amb {ell|ella}.`,N:`Durant aquest segon trimestre, {n} ha treballat força. A classe mostra una actitud molt bona, {està atent|està atenta}, participa i s'esforça per millorar i aprendre més cada dia. A poc a poc, demostrarà tot el que és capaç de fer.`,S:`Durant aquest segon trimestre, {n} ha treballat força, però encara pot fer més. Estic segura que el tercer trimestre podrà donar el millor {d'ell mateix|d'ella mateixa}.`});b.in.X=b.in.S;
+    b.cl=`L'animo a continuar així el pròxim trimestre. Gaudiu de la Setmana Santa!`;
+    b.act=[{k:'Problemes',t:`Ha de millorar la resolució de problemes matemàtics.`},{k:'Deures',t:`Ha de treballar cada dia, ja que els deures són una part important de la nota de l'assignatura.`},{k:'Organització i agenda',t:`Li cal millorar l'organització i portar l'agenda al dia per no deixar-se res.`},{k:'Va millorant',t:`Va començar el trimestre una mica fluix, però s'ha posat les piles i va millorant, sobretot en la cal·ligrafia i la presentació de les tasques.`},{k:'Les notes no ho reflecteixen',t:`Encara que les notes no ho reflecteixin del tot, sé que s'hi està esforçant i que, a poc a poc, demostrarà el que és capaç de fer, especialment en matemàtiques i llengua catalana.`}]}
+  if(c==='5'){b.act=b.act.concat(VEL);b.v1=1}
+  return b};
+const N=D.length;
+let E=null;
+const NMK=()=>"progaula-noms:"+SY.user;
+let NM={};
+function init(){if(!S.ev||typeof S.ev!=="object")S.ev={curs:"5",tri:1,sel:0,tab:"al",ar:0,cs:{}};E=S.ev;E.cs=E.cs||{};try{NM=JSON.parse(localStorage.getItem(NMK())||"{}")||{}}catch(e){NM={}}}
+const CU=()=>E.cs[E.curs]=E.cs[E.curs]||{al:[],frs:{}};
+const AL=()=>CU().al;
+const fixFr=F=>{const c=String(E.curs);
+  if(c==='5'&&!F.v1){F.v1=1;VEL.forEach(x=>{if(!F.act.some(y=>y.k===x.k))F.act.push(x)})}
+  if(!F.v2){F.v2=1;const v=VL(F),r=(REF[c]||[])[E.tri-1];if(r&&v.lo===''&&v.hi===''){v.lo=v.hi=String(r)}}
+  if(c==='5'&&E.tri===2&&!F.v3){F.v3=1;const e=" L'animo a continuar així el pròxim trimestre.",f=" L'animo a continuar esforçant-se.";
+    if(F.cl==="L'animo a continuar així el pròxim trimestre. Gaudiu de la Setmana Santa!"){F.cl='Gaudiu de la Setmana Santa!';F.in.E+=e;F.in.N+=e;F.in.S+=f;F.in.X+=f}
+    NEG.forEach(x=>{if(!F.act.some(y=>y.k===x.k))F.act.push(x)})}
+  return F};
+function FR(){const c=CU();c.frs=c.frs||{};if(!c.frs[E.tri]){c.frs[E.tri]=DEF(E.curs,E.tri);fixFr(c.frs[E.tri])}return c.frs[E.tri]}
+const nameOf=st=>((NM[E.curs]||{})[st.n]||"").trim();
+const label=st=>st.n+(nameOf(st)?" · "+nameOf(st):"");
+const lv=v=>v==null?'':v<4.55?'NA':v<5.45?'AS':v<6.45?'AS+':v<7.45?'AN':v<8.45?'AN+':v<9.45?'AE':'AE+';
+const cl=l=>l?'l'+l.slice(0,2):'';
+const num=s=>{const x=parseFloat(String(s).trim().replace(',','.'));return isNaN(x)?null:Math.min(10,Math.max(0,x))};
+const G=st=>{st.t=st.t||{};return st.t[E.tri]=st.t[E.tri]||Array(N).fill(null)};
+const avg=a=>{const x=a.filter(v=>v!=null);return x.length?x.reduce((p,c)=>p+c,0)/x.length:null};
+const areaIdx=i=>D.map((d,k)=>d.a===i?k:-1).filter(k=>k>=0);
+const join=a=>a.length<2?a.join(''):a.slice(0,-1).join(', ')+' i '+a[a.length-1];
+const nm=st=>String(st.n).trim().split(/\s+/)[0];
+const TXT={NA:'no assolit',AS:'satisfactori',AN:'notable',AE:'excel·lent'};
+const base=l=>l.slice(0,2);
+const gx=(t,st)=>t.replace(/\{([^{}|]+)\|([^{}|]+)\}/g,(m,a,b)=>st.g==='f'?b:a);
+// {n}: amb nom (només en aquest dispositiu) → «En Pau», «La Marta», «L'Anna»; sense nom → «L'alumne 7»
+const who=st=>{const n=nameOf(st).split(/\s+/)[0];if(!n)return "L'alumne "+st.n;return (/^[aeiouàèéíòóúh]/i.test(n)?"L'":st.g==='f'?'La ':'En ')+n};
+const fx=(t,st)=>gx(t,st).replace(/(^|[.!?]\s+)\{n\}/g,(m,p)=>p+who(st)).replace(/\{n\}/g,who(st).replace(/^(En |La |L')/,x=>x.toLowerCase()));
+const pn=s=>{const x=parseFloat(String(s).replace(',','.'));return isNaN(x)?null:x};
+function VL(F){F=F||FR();return F.vl||(F.vl={lo:'',hi:'',L:'La velocitat lectora encara és baixa. Cal continuar treballant la lectura diària.',H:'Llegeix amb una bona velocitat i fluïdesa.'})}
+const velS=(st,F)=>{const x=(st.p||{})[E.tri],v=VL(F),lo=pn(v.lo),hi=pn(v.hi);if(x==null)return '';
+  const hasV=(st.ch||[]).some(i=>F.act[i]&&/^Velocitat/.test(F.act[i].k));
+  if(lo!=null&&x<lo)return hasV?'':fx(v.L,st);if(hi!=null&&x>=hi)return fx(v.H,st);return ''};
+const grp=l=>({AE:'E',AN:'N',AS:'S',NA:'X'})[base(l)];
+function genGen(st){
+  const g=G(st),it=D.map((d,k)=>({d,v:g[k],k})).filter(x=>x.v!=null);
+  if(!it.length)return "Falten les notes d'aquest trimestre.";
+  const F=FR(),p=[fx(F.in[grp(lv(avg(g)))],st)];
+  (st.ch||[]).forEach(i=>{if(F.act[i])p.push(fx(F.act[i].t,st))});
+  const vs=velS(st,F);if(vs)p.push(vs);
+  const top=it.filter(x=>x.v>=8.5).sort((a,b)=>b.v-a.v).slice(0,3).map(x=>x.d.lab);
+  const nas=A.map((a,i)=>({a,v:avg(areaIdx(i).map(k=>g[k]))})).filter(x=>x.v!=null&&x.v<4.55).map(x=>x.a.n.toLowerCase());
+  const low=it.filter(x=>x.v<6.5&&!nas.includes(A[x.d.a].n.toLowerCase())).sort((a,b)=>a.v-b.v).slice(0,3).map(x=>x.d.lab);
+  if(top.length)p.push('Destaca especialment en '+join(top)+'.');
+  if(nas.length)p.push('No ha assolit els continguts mínims de '+join(nas)+'.');
+  if(low.length)p.push('Cal que millori '+join(low)+'.');
+  if(F.cl)p.push(fx(F.cl,st));
+  return p.join(' ');
+}
+function genArea(st,i){
+  const g=G(st),ix=areaIdx(i),v=avg(ix.map(k=>g[k]));
+  if(v==null)return "Falten les notes d'aquesta àrea.";
+  const p=[fx(FR().ar[i][grp(lv(v))],st)];
+  if(ix.length>1){const it=ix.map(k=>({d:D[k],v:g[k]})).filter(x=>x.v!=null),top=it.filter(x=>x.v>=8.5).map(x=>x.d.lab),low=it.filter(x=>x.v<6.5).map(x=>x.d.lab);
+    if(top.length)p.push('Destaca en '+join(top)+'.');if(low.length)p.push('Cal que millori '+join(low)+'.')}
+  return p.join(' ');
+}
+const copyT=async(txt,el)=>{try{await navigator.clipboard.writeText(txt)}catch(e){const t=document.createElement('textarea');t.value=txt;document.body.appendChild(t);t.select();try{document.execCommand('copy')}catch(_){}t.remove()}
+  if(el){const o=el.textContent;el.textContent='Copiat';setTimeout(()=>el.textContent=o,1200)}};
+const TABS={al:'Alumnes',no:'Notes',fi:'Fitxa',fr:'Frases'};
+const triSel=()=>`<select id="ev-tri" aria-label="Trimestre">${[1,2,3].map(t=>`<option value="${t}" ${E.tri==t?'selected':''}>${t}r trimestre</option>`).join('')}</select>`;
+const parseNums=s=>{const out=[];String(s).split(/[,;\s]+/).filter(Boolean).forEach(p=>{const m=/^(\d{1,3})(?:-(\d{1,3}))?$/.exec(p);if(!m)return;const a=+m[1],b=m[2]?+m[2]:a;for(let i=Math.min(a,b);i<=Math.max(a,b)&&out.length<60;i++)if(!out.includes(String(i)))out.push(String(i))});return out};
+const rangeTxt=al=>{const n=al.map(a=>+a.n).filter(x=>!isNaN(x)).sort((a,b)=>a-b),r=[];let s=null,p=null;n.forEach(x=>{if(s===null){s=p=x}else if(x===p+1)p=x;else{r.push(s===p?s:s+'-'+p);s=p=x}});if(s!==null)r.push(s===p?s:s+'-'+p);return r.join(', ')};
+function view(){init();
+  let h=`<h1>Avaluació</h1><p class="sub">Les notes es guarden al teu compte només amb el número de llista. Els noms dels alumnes es guarden només en aquest dispositiu i l'assistent d'IA no té accés a aquesta secció.</p>
+  <div class="row ev-nav"><select id="ev-cu" aria-label="Curs">${['1r','2n','3r','4t','5è','6è'].map((c,i)=>`<option value="${i+1}" ${E.curs==i+1?'selected':''}>${c} de primària</option>`).join('')}</select></div>
+  <div class="chips">${Object.keys(TABS).map(k=>`<button type="button" data-evt="${k}" aria-pressed="${E.tab===k}">${TABS[k]}</button>`).join('')}</div><div id="ev">`;
+  h+=E.tab==='al'?vAl():E.tab==='no'?vNo():E.tab==='fr'?vFr():vFi();
+  return h+'</div>'}
+function vAl(){const al=AL();
+  return `<div class="card"><b>Números de llista</b><p class="hint">Escriu els números o intervals, per exemple «1-25» o «1-12, 14-26». Al núvol només es guarden aquests números.</p>
+  <div class="row" style="flex-wrap:nowrap"><input id="ev-nums" value="${esc(rangeTxt(al))}" placeholder="1-25" style="flex:1;width:auto"><button class="pri" type="button" id="ev-savenums">Desar</button></div><p id="ev-msg" class="hint" role="status"></p></div>
+  ${al.length?`<div class="card"><b>Noms (només en aquest dispositiu)</b><p class="hint">Opcionals: si els poses, els comentaris diran «En Pau» o «La Marta» en lloc de «L'alumne 7». Pots enganxar una columna de noms al primer quadre i s'omplen en ordre.</p>
+  <div class="ev-names">${al.map((st,i)=>`<label for="ev-nm-${i}">${esc(st.n)}</label><input id="ev-nm-${i}" data-nm="${esc(st.n)}" value="${esc(nameOf(st))}" autocomplete="off">`).join('')}</div></div>`:''}`}
+function vNo(){const al=AL();if(!al.length)return `<div class="empty">Primer afegeix els números de llista a la pestanya Alumnes.</div>`;
+  let h1='<tr><th class="n"></th>',h2='<tr><th class="n">Alumne</th>';
+  A.forEach(a=>h1+=`<th class="a" colspan="${a.d.length}">${esc(a.n)}</th>`);D.forEach(d=>h2+=`<th class="d">${esc(d.d)}</th>`);
+  const b=al.map((st,r)=>{const g=G(st);return `<tr><td class="n">${esc(label(st))}</td>`+g.map((x,c)=>`<td class="${cl(lv(x))}"><input inputmode="decimal" data-r="${r}" data-c="${c}" aria-label="${esc(st.n+' '+D[c].d)}" value="${x==null?'':String(x).replace('.',',')}"></td>`).join('')+'</tr>'}).join('');
+  return `<p class="hint" style="margin:0 0 8px">Copia des d'Excel, Sheets o iDoceo i enganxa dins la primera cel·la: s'omple tot el bloc. També pots omplir els buits amb una nota i canviar només les excepcions.</p>
+  <div class="row">${triSel()}<input id="ev-df" inputmode="decimal" placeholder="Nota" style="width:90px"><button class="btn" type="button" id="ev-fill">Omple els buits</button></div>
+  <details class="card"><summary>Velocitat lectora (paraules per minut)</summary><p class="hint">Enganxa una columna d'Excel, en l'ordre de la llista.</p><textarea id="ev-ppm" rows="4">${al.map(a=>(a.p||{})[E.tri]??'').join('\n')}</textarea></details>
+  <div class="ev-wrap" id="ev-gr"><table><thead>${h1}</tr>${h2}</tr></thead><tbody>${b}</tbody></table></div>`}
+function vFi(){const al=AL();if(!al.length)return `<div class="empty">Primer afegeix els números de llista a la pestanya Alumnes.</div>`;
+  E.sel=Math.min(E.sel||0,al.length-1);const st=al[E.sel],g=G(st),F=FR();let rows='';
+  A.forEach((a,i)=>{const ix=areaIdx(i),v=lv(avg(ix.map(k=>g[k])));rows+=`<tr class="ar"><td>${esc(a.n)}</td><td class="c ${cl(v)}">${v||'–'}</td></tr>`;ix.forEach(k=>rows+=`<tr><td>${esc(D[k].d)}</td><td class="c ${cl(lv(g[k]))}">${lv(g[k])||'–'}</td></tr>`)});
+  return `<div class="row">${triSel()}<select id="ev-al" aria-label="Alumne">${al.map((a,i)=>`<option value="${i}" ${i===E.sel?'selected':''}>${esc(label(a))}</option>`).join('')}</select>
+  <select id="ev-gn" aria-label="Gènere"><option value="m" ${st.g!=='f'?'selected':''}>En (ell)</option><option value="f" ${st.g==='f'?'selected':''}>La (ella)</option></select></div>
+  <div class="chips" id="ev-chs">${F.act.map((x,i)=>`<button type="button" data-ch="${i}" aria-pressed="${(st.ch||[]).includes(i)}">${esc(x.k)}</button>`).join('')}</div>
+  <div class="row"><label for="ev-pp" style="margin:0">Velocitat lectora (ppm)</label><input id="ev-pp" inputmode="numeric" style="width:90px" value="${(st.p||{})[E.tri]??''}"></div>
+  <h2>Comentari general</h2><textarea id="ev-cg" class="ev-cm" rows="7">${esc(genGen(st))}</textarea>
+  <div class="row"><button class="btn" type="button" id="ev-rg">Torna a generar</button><button class="pri" type="button" id="ev-cc">Copia</button></div>
+  <h2>Comentari d'una àrea (si cal)</h2><div class="row"><select id="ev-ar" aria-label="Àrea">${A.map((a,i)=>`<option value="${i}" ${i===E.ar?'selected':''}>${esc(a.n)}</option>`).join('')}</select><button class="btn" type="button" id="ev-ga">Genera</button></div>
+  <textarea id="ev-ca" rows="4">${esc(genArea(st,E.ar))}</textarea><div class="row"><button class="pri" type="button" id="ev-cb">Copia</button></div>
+  <h2>Nivells per a Alexia</h2><div class="row"><button class="pri" type="button" id="ev-cn">Copia els nivells</button></div>
+  <div class="ev-wrap"><table class="ev-fi"><tbody>${rows}</tbody></table></div>`}
+function vFr(){const F=FR(),T=['E','N','S','X'],TN={E:'Excel·lent (AE, AE+)',N:'Notable (AN, AN+)',S:'Satisfactori (AS, AS+)',X:'No assolit (NA)'},V=VL(F);
+  return `<div class="row">${triSel()}</div><p class="hint">Frases d'aquest curs i trimestre. Fes servir {n} per al nom amb article (En Pau, La Marta) i {masculí|femení} per al gènere, per exemple «per si {sol|sola}».</p>
+  <h2>Inici del comentari general, segons el nivell global</h2>${T.map(k=>`<label>${TN[k]}</label><textarea data-p="in.${k}" rows="3">${esc(F.in[k])}</textarea>`).join('')}
+  <h2>Frases d'actitud</h2><p class="hint">Es marquen a la fitxa de cada alumne. Una per línia, amb el format: etiqueta | frase</p><textarea data-p="act" rows="7">${esc(F.act.map(x=>x.k+' | '+x.t).join('\n'))}</textarea>
+  <h2>Final del comentari</h2><textarea data-p="cl" rows="2">${esc(F.cl)}</textarea>
+  <h2>Velocitat lectora (ppm)</h2><p class="hint">Valors de referència d'aquest curs i trimestre. Si els deixes buits, no s'afegeix cap frase automàtica.</p>
+  <div class="row"><label style="margin:0">Baixa si és menys de</label><input data-p="vl.lo" style="width:80px" value="${esc(V.lo)}"><label style="margin:0">Bona a partir de</label><input data-p="vl.hi" style="width:80px" value="${esc(V.hi)}"></div>
+  <label>Frase si és baixa</label><textarea data-p="vl.L" rows="2">${esc(V.L)}</textarea><label>Frase si és bona</label><textarea data-p="vl.H" rows="2">${esc(V.H)}</textarea>
+  <h2>Frases per àrea</h2><select id="ev-fa" aria-label="Àrea">${A.map((a,i)=>`<option value="${i}" ${i===E.ar?'selected':''}>${esc(a.n)}</option>`).join('')}</select>
+  ${T.map(k=>`<label>${TN[k]}</label><textarea data-p="ar.${E.ar}.${k}" rows="3">${esc(F.ar[E.ar][k])}</textarea>`).join('')}`}
+const rer=()=>{const sc=$("#ev-gr")?$("#ev-gr").scrollLeft:0;render();if($("#ev-gr"))$("#ev-gr").scrollLeft=sc};
+// Esdeveniments (delegats al document; només actuen dins la secció d'avaluació)
+document.addEventListener('click',e=>{if(tab!=="ev")return;const t=e.target.closest('[data-evt],[data-ch],#ev-savenums,#ev-fill,#ev-rg,#ev-cc,#ev-ga,#ev-cb,#ev-cn');if(!t)return;init();
+  if(t.dataset.evt){E.tab=t.dataset.evt;save();render();return}
+  const al=AL(),st=al[E.sel||0];
+  if(t.id==='ev-savenums'){const nums=parseNums($("#ev-nums").value);if(!nums.length){$("#ev-msg").textContent="Escriu almenys un número, per exemple 1-25.";return}
+    CU().al=nums.map(n=>al.find(a=>a.n===n)||{n,t:{}});E.sel=0;save();render();$("#ev-msg").textContent=nums.length+" alumnes desats.";return}
+  if(t.id==='ev-fill'){const x=num($("#ev-df").value);if(x==null)return;al.forEach(s=>{const g=G(s);g.forEach((q,k)=>{if(q==null)g[k]=x})});save();rer();return}
+  if(t.dataset.ch!==undefined){const i=+t.dataset.ch;st.ch=st.ch||[];const x=st.ch.indexOf(i);if(x<0)st.ch.push(i);else st.ch.splice(x,1);save();t.setAttribute('aria-pressed',x<0);$("#ev-cg").value=genGen(st);return}
+  if(t.id==='ev-rg')$("#ev-cg").value=genGen(st);
+  if(t.id==='ev-ga')$("#ev-ca").value=genArea(st,E.ar);
+  if(t.id==='ev-cc')copyT($("#ev-cg").value,t);
+  if(t.id==='ev-cb')copyT($("#ev-ca").value,t);
+  if(t.id==='ev-cn'){const g=G(st);copyT(A.map((a,i)=>{const ix=areaIdx(i);return a.n+'\t'+lv(avg(ix.map(k=>g[k])))+'\n'+ix.map(k=>D[k].d+'\t'+lv(g[k])).join('\n')}).join('\n'),t)}});
+document.addEventListener('change',e=>{if(tab!=="ev")return;const t=e.target;if(!t.closest||!t.closest('#view'))return;init();const al=AL(),st=al[E.sel||0];
+  if(t.id==='ev-cu'){E.curs=t.value;E.sel=0;save();render()}
+  else if(t.id==='ev-tri'){E.tri=+t.value;save();rer()}
+  else if(t.id==='ev-al'){E.sel=+t.value;save();render()}
+  else if(t.id==='ev-gn'){st.g=t.value;save();$("#ev-cg").value=genGen(st);$("#ev-ca").value=genArea(st,E.ar)}
+  else if(t.id==='ev-ar'){E.ar=+t.value;$("#ev-ca").value=genArea(st,E.ar)}
+  else if(t.id==='ev-fa'){E.ar=+t.value;render()}
+  else if(t.id==='ev-pp'){st.p=st.p||{};st.p[E.tri]=pn(t.value);save();$("#ev-cg").value=genGen(st)}
+  else if(t.id==='ev-ppm'){t.value.split(/\r?\n/).forEach((s,i)=>{const x=al[i];if(x){x.p=x.p||{};x.p[E.tri]=pn(s)}});save()}
+  else if(t.dataset.nm!==undefined){NM[E.curs]=NM[E.curs]||{};const v=t.value.trim();if(v)NM[E.curs][t.dataset.nm]=v;else delete NM[E.curs][t.dataset.nm];lsSet(NMK(),JSON.stringify(NM))}
+  else if(t.dataset.r!==undefined){const s=al[+t.dataset.r],x=num(t.value);G(s)[+t.dataset.c]=x;t.value=x==null?'':String(x).replace('.',',');t.parentNode.className=cl(lv(x));save()}},true);
+document.addEventListener('input',e=>{if(tab!=="ev")return;const t=e.target,p=t.dataset&&t.dataset.p;if(!p)return;init();const F=FR(),x=t.value;
+  if(p==='act')F.act=x.split(/\r?\n/).filter(s=>s.trim()).map(s=>{const j=s.indexOf('|');return j<0?{k:s.trim().slice(0,18),t:s.trim()}:{k:s.slice(0,j).trim(),t:s.slice(j+1).trim()}});
+  else if(p==='cl')F.cl=x;else{const q=p.split('.');if(q[0]==='in')F.in[q[1]]=x;else if(q[0]==='vl')VL(F)[q[1]]=x;else F.ar[+q[1]][q[2]]=x}
+  save()});
+document.addEventListener('paste',e=>{if(tab!=="ev")return;const t=e.target;if(!t.dataset)return;const tx=(e.clipboardData||window.clipboardData).getData('text');if(!/[\t\n]/.test(tx.trim()))return;init();const al=AL();
+  if(t.dataset.r!==undefined){e.preventDefault();const r0=+t.dataset.r,c0=+t.dataset.c;tx.trim().split(/\r?\n/).forEach((row,dr)=>row.split('\t').forEach((cell,dc)=>{const s=al[r0+dr];if(s&&c0+dc<N)G(s)[c0+dc]=num(cell)}));save();rer()}
+  else if(t.dataset.nm!==undefined){e.preventDefault();const i0=al.findIndex(a=>a.n===t.dataset.nm);NM[E.curs]=NM[E.curs]||{};tx.trim().split(/\r?\n/).forEach((s,d)=>{const a=al[i0+d];if(a){const v=s.split('\t')[0].trim();if(v)NM[E.curs][a.n]=v}});lsSet(NMK(),JSON.stringify(NM));render()}},true);
+return {view,init}})();
+
 function render(){
-  $("#nav").innerHTML=[["hoy","Agenda"],["horario","Horario"],["prog","Programación"],["rec","Recursos"]].map(t=>`<button data-tab="${t[0]}" ${tab===t[0]?'aria-current="page"':""}>${t[1]}</button>`).join("");
+  $("#nav").innerHTML=[["hoy","Agenda"],["horario","Horario"],["prog","Programación"],["ev","Avaluació"],["rec","Recursos"]].map(t=>`<button data-tab="${t[0]}" ${tab===t[0]?'aria-current="page"':""}>${t[1]}</button>`).join("");
   if(tab==="leng")tab="prog";
-  $("#view").innerHTML=({hoy:vAgenda,horario:vHorario,prog:vProg,rec:vRec})[tab]();
+  $("#view").innerHTML=({hoy:vAgenda,horario:vHorario,prog:vProg,ev:EV.view,rec:vRec})[tab]();
 }
 
 function unitForm(u){
