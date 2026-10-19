@@ -42,6 +42,13 @@ Los datos se guardan en un almacén privado de Vercel y se sincronizan entre dis
 - El **calendario del cole** (días sin clase, light, medias jornadas y notas del día) es común: lo ven y lo pueden editar todas las cuentas.
 - Cada compañero puede cambiar su contraseña con **Cambiar contraseña**, y **Salir** cierra la sesión en ese dispositivo.
 
+## Páginas de los recursos y cambios rápidos
+
+- Cada recurso tiene **Páginas por unidad**: dónde está cada control (modelos A y B), prova competencial, autoavaluació, fitxes de reforç, ampliació y el repaso del libro. Se indica la página del libro y, si es distinta, la del PDF (la que se escribe al imprimir).
+- La Agenda y **Por imprimir** muestran esas páginas junto a cada control, ficha de repaso y repaso.
+- Al cambiar la fecha de un control (en la sesión o en «Fin» de la unidad), la ficha de repaso pasa a la clase anterior de esa asignatura.
+- Cada hora de la Agenda tiene **Cambiar ▾**: marcar hecho, mover a otro día, quitar la fecha fija, «no se avanzó», añadir una sesión, o ir a esa unidad en Programación.
+
 ## Importar horario y programación
 
 - **Horario desde Excel:** en Horario, «Descargar plantilla de Excel» (`plantilla-horario.xlsx`), rellenarla y «Importar horario de Excel». También acepta `.csv`.
