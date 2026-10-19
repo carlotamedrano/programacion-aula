@@ -46,6 +46,7 @@ Los datos se guardan en un almacén privado de Vercel y se sincronizan entre dis
 
 - Cada recurso tiene **Páginas por unidad**: dónde está cada control (modelos A y B), prova competencial, autoavaluació, fitxes de reforç, ampliació y el repaso del libro. Se indica la página del libro y, si es distinta, la del PDF (la que se escribe al imprimir).
 - La Agenda y **Por imprimir** muestran esas páginas junto a cada control, ficha de repaso y repaso.
+- **Fichas de refuerzo antes del control.** En Mates y Medi, cada fitxa de reforç de la unidad sale una a una en la ficha de repaso. En Català y Castellano, cada control lleva las fichas de los contenidos que entran (ortografía, gramática, vocabulario y dictados del Libro de recursos). Salen en **Por imprimir** dos clases antes del control y en el bloque del control de Programación.
 - Al cambiar la fecha de un control (en la sesión o en «Fin» de la unidad), la ficha de repaso pasa a la clase anterior de esa asignatura.
 - Cada hora de la Agenda tiene **Cambiar ▾**: marcar hecho, mover a otro día, quitar la fecha fija, «no se avanzó», añadir una sesión, o ir a esa unidad en Programación.
 
