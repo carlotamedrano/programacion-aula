@@ -531,9 +531,9 @@ function editDay(k){const w=wd(dt(k)),subs=[];S.slots.forEach((h,i)=>{const s=sk
     S.sk=S.sk||{};if(d.sk.length)S.sk[k]=d.sk;else delete S.sk[k]})}
 function prevDay(k){let d=addD(dt(k),-1);while(wd(d)>4||(C.off||[]).includes(iso(d)))d=addD(d,-1);return iso(d)}
 function printList(E){const t=iso(new Date()),r=[];
-  S.units.forEach(u=>u.ses.forEach((x,i)=>{const e=eff(u,x,i,E);if(!e||e<t||x.done)return;const rf=sesRefs(u,x);let p=rf.length?(/^Repaso|^Repàs/.test(x.t)?'Repartir el repaso':/^Ficha/.test(x.t)?'Imprimir las fichas de refuerzo':'Imprimir el control'):x.p?'Imprimir: '+x.p:/^Control/.test(x.t)?'Imprimir el control':/^Ficha de repaso/.test(x.t)?'Imprimir la ficha de repaso':'';if(p)r.push({e,p,rf,u:u.title})}));
-  Object.keys(S.ctl||{}).forEach(q=>{if(S.ctl[q]>=t&&!S.done[q+'-ctl']){const a=q.split('-'),rf=refsOf(q,['ctl','auto']),fc=refsOf(q,['fic']),u=LNG[a[0]].n+' · '+LNG[a[0]].M[+a[1]][0];r.push({e:S.ctl[q],p:'Imprimir el control',rf,u});
-    if(fc.length){const d=ficDay(q);r.push({e:d<t?t:d,p:'Repartir las fichas de refuerzo antes del control',rf:fc,u})}}});
+  S.units.forEach(u=>u.ses.forEach((x,i)=>{const e=eff(u,x,i,E);if(!e||e<t||x.done)return;const rf=sesRefs(u,x);let p=rf.length?(/^Repaso|^Repàs/.test(x.t)?'Repartir el repaso':/^Ficha/.test(x.t)?'Imprimir las fichas de refuerzo':'Imprimir el control'):x.p?'Imprimir: '+x.p:/^Control/.test(x.t)?'Imprimir el control':/^Ficha de repaso/.test(x.t)?'Imprimir la ficha de repaso':'';if(p)r.push({e,p,rf,u:u.title,id:'s:'+u.id+':'+i,ok:!!x.pr})}));
+  Object.keys(S.ctl||{}).forEach(q=>{if(S.ctl[q]>=t&&!S.done[q+'-ctl']){const a=q.split('-'),rf=refsOf(q,['ctl','auto']),fc=refsOf(q,['fic']),u=LNG[a[0]].n+' · '+LNG[a[0]].M[+a[1]][0];r.push({e:S.ctl[q],p:'Imprimir el control',rf,u,id:'k:'+q+'-ctl',ok:!!(S.pr||{})[q+'-ctl']});
+    if(fc.length){const d=ficDay(q);r.push({e:d<t?t:d,p:'Repartir las fichas de refuerzo antes del control',rf:fc,u,id:'k:'+q+'-fic',ok:!!(S.pr||{})[q+'-fic']})}}});
   return r.sort((a,b)=>a.e<b.e?-1:1)}
 // Lista de páginas agrupada por documento (Por imprimir).
 function refList(rf){if(!rf||!rf.length)return '';const g={};rf.forEach(r=>{(g[r.r]=g[r.r]||[]).push(r)});return Object.keys(g).map(id=>`<div class='muted' style='margin-top:4px'>${esc(resT(id))}</div><ul class='pgl'>${g[id].map(r=>`<li>${esc(r.t)}, ${esc(pgTxt(r))}</li>`).join('')}</ul>`).join('')}
@@ -612,7 +612,9 @@ function vAgenda(){const E=sched(),T=new Date(),t0=iso(T);
     h+=`<div class='row sp' style='margin:6px 0'><button class='btn' data-mo='-1'>←</button><b style='text-transform:capitalize'>${MES[b.getMonth()]} ${b.getFullYear()}</b><button class='btn' data-mo='1'>→</button></div><div style='display:grid;grid-template-columns:repeat(7,1fr);gap:4px'>`+['L','M','X','J','V','S','D'].map(x=>`<div class='muted' style='text-align:center'>${x}</div>`).join('')+'<div></div>'.repeat(f);
     for(let d=1;d<=n;d++){const k=iso(new Date(b.getFullYear(),b.getMonth(),d)),s=k===sel,off=(C.off||[]).includes(k);h+=`<button data-day='${k}' style='min-height:46px;border-radius:8px;border:${k===t0?'2px solid var(--pri)':'1px solid var(--line)'};background:${s?'var(--hl)':'var(--paper)'};color:${s?'var(--onhl)':'inherit'};opacity:${off?0.45:half(k)?0.75:1}'>${d}${dots[k]?'<br>•':''}</button>`}
     h+=`</div><h2>${Fl(sel)}</h2>${dayHtml(sel,E)}${wd(dt(sel))<5?`<div style='margin-top:10px'><button class='btn' data-eday='${sel}'>Editar día</button></div>`:''}`}
-  else{const r=printList(E);h+=r.length?r.map(o=>{const n=Math.round((dt(o.e)-dt(t0))/864e5);return `<div class='card'><b>${Fl(o.e)}</b> <span class='muted'>(${n===0?'hoy':n===1?'mañana':'en '+n+' días'})</span><div>${esc(o.p)}</div>${refList(o.rf)}<div class='muted'>${esc(o.u)}. Imprimir antes del ${fl(prevDay(o.e))}.</div></div>`}).join(''):`<div class='empty'>No hay nada pendiente de imprimir. Al editar una sesión puedes poner la fecha y qué imprimir.</div>`}
+  else{const all=printList(E),r=all.filter(o=>!o.ok),hc=all.filter(o=>o.ok);
+    h+=r.length?`<p class='hint'>Marca la casilla cuando lo tengas impreso y pasa a «Ya impreso».</p>`+r.map(o=>{const n=Math.round((dt(o.e)-dt(t0))/864e5);return `<div class='card'><label class='ses' style='margin:0'><input type='checkbox' data-pr='${o.id}'><span><b>${Fl(o.e)}</b> <span class='muted'>(${n===0?'hoy':n===1?'mañana':'en '+n+' días'})</span></span></label><div>${esc(o.p)}</div>${refList(o.rf)}<div class='muted'>${esc(o.u)}. Imprimir antes del ${fl(prevDay(o.e))}.</div></div>`}).join(''):`<div class='empty'>${hc.length?'Todo impreso.':'No hay nada pendiente de imprimir. Al editar una sesión puedes poner la fecha y qué imprimir.'}</div>`;
+    if(hc.length)h+=`<details class='card fold' style='margin-top:10px'><summary><b>Ya impreso</b> <span class='muted'>(${hc.length})</span></summary><div class='foldin'>${hc.map(o=>tick(`data-pr='${o.id}'`,true,`${esc(o.p)} <span class='muted'>· ${esc(o.u)} · ${fdate(o.e)}</span>`)).join('')}<p class='hint'>Desmarca para devolverlo a la lista.</p></div></details>`}
   return h}
 // ===== Avaluació: notes per número de llista; els noms només es guarden en aquest dispositiu =====
 const EV=(()=>{
@@ -1000,6 +1002,7 @@ document.addEventListener("click",e=>{
   else if(D.editres){const r=S.res.find(x=>x.id===D.editres);modal("Editar recurso",resForm(r),d=>Object.assign(r,d),()=>{S.res=S.res.filter(x=>x!==r)})}
 });
 document.addEventListener("change",e=>{
+  const pr=e.target.dataset&&e.target.dataset.pr;if(pr){const a=pr.split(':');if(a[0]==='k'){S.pr=S.pr||{};if(e.target.checked)S.pr[a[1]]=T0();else delete S.pr[a[1]]}else{const u=S.units.find(x=>x.id===a[1]),x=u&&u.ses[+a[2]];if(x){if(e.target.checked)x.pr=T0();else delete x.pr}}save();render();return}
   const dn=e.target.dataset&&e.target.dataset.dn;if(dn){if(e.target.checked)S.done[dn]=T0();else delete S.done[dn];save();render();return}
   const t=e.target.dataset&&e.target.dataset.tg;if(!t)return;
   const[id,i]=t.split(":");const u=S.units.find(x=>x.id===id);if(u){const x=u.ses[+i];x.done=e.target.checked;if(x.done&&!x.d)x.f=T0();else delete x.f;save();render()}
